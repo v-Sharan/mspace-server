@@ -13,7 +13,8 @@ __all__ = ("RTHAction", "RTHPlan", "RTHPlanEntry")
 
 class RTHAction(Enum):
     LAND = "land"
-    GO_TO_KEEPING_ALTITUDE_AND_LAND = "goTo"
+    GO_TO_KEEPING_ALTITUDE_AND_LAND = "goToKeepAlt"
+    GO_TO_STRAIGHT_WITH_NECK_AND_LAND = "goToStraight"
 
 
 @dataclass(frozen=True)
@@ -30,11 +31,12 @@ class RTHPlanEntry:
 
     target: Tuple[float, ...] = ()
     """The target coordinate of the action, if applicable. Ignored if the
-    action is ``RTHAction.LAND``
+    action is ``RTHAction.LAND``, only 2D is used if the action is
+    ``RTHAction.GO_TO_KEEPING_ALTITUDE_AND_LAND``, and 3D otherwise.
     """
 
     duration: int = 0
-    """Duration of the action, in seconds, if applicable. Ignored if the action
+    """Duration of the net action, in seconds, if applicable. Ignored if the action
     is ``RTHAction.LAND``. Must be an integer; floats are not allowed.
     """
 
@@ -47,6 +49,16 @@ class RTHPlanEntry:
     """Number of seconds to wait after finishing the action, before proceeding
     with landing. Must be an integer; floats are not allowed.
     """
+
+    pre_neck_size: float = 0
+    """The vertical neck size before the action, if applicable. Expressed in
+    the same format as coordinates. Ignored if the action is not
+    `RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND`."""
+
+    pre_neck_duration: int = 0
+    """The number of seconds of the vertical neck motion before the action, if applicable.
+    Must be an integer; floats are not allowed. Ignored if the action is not
+    `RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND`."""
 
     @classmethod
     def from_json(cls, data: Dict):
@@ -76,11 +88,11 @@ class RTHPlanEntry:
 
         kwds = {"time": int(time), "action": action}
 
-        target = tuple(data.get("target") or ())
-        if len(target) != 2 or not all(
+        target = tuple(data.get("target", ()))
+        if len(target) not in [2, 3] or not all(
             isinstance(item, (int, float)) for item in target
         ):
-            raise ValueError("targets in RTH plan entry must be pairs of numbers")
+            raise ValueError("targets in RTH plan entry must be 2D or 3D numbers")
         kwds["target"] = target
 
         # ----------------------------------------------------------------------
@@ -98,7 +110,7 @@ class RTHPlanEntry:
 
         # ----------------------------------------------------------------------
 
-        pre_delay = data.get("preDelay") or 0
+        pre_delay = data.get("preDelay", 0)
         if isinstance(pre_delay, float) and pre_delay.is_integer():
             pre_delay = int(pre_delay)
         if not isinstance(pre_delay, int):
@@ -108,7 +120,7 @@ class RTHPlanEntry:
 
         # ----------------------------------------------------------------------
 
-        post_delay = data.get("postDelay") or 0
+        post_delay = data.get("postDelay", 0)
         if isinstance(post_delay, float) and post_delay.is_integer():
             post_delay = int(post_delay)
         if not isinstance(post_delay, int):
@@ -116,12 +128,34 @@ class RTHPlanEntry:
         if post_delay > 0:
             kwds["post_delay"] = post_delay
 
+        # ----------------------------------------------------------------------
+
+        pre_neck_size = data.get("preNeckSize", 0)
+        if not isinstance(pre_neck_size, (int, float)):
+            raise ValueError("RTH plan entry pre neck size must be a number")
+        kwds["pre_neck_size"] = pre_neck_size
+
+        # ----------------------------------------------------------------------
+
+        pre_neck_duration = data.get("preNeckDuration", 0)
+        if isinstance(pre_neck_duration, float) and pre_neck_duration.is_integer():
+            pre_neck_duration = int(pre_neck_duration)
+        if not isinstance(pre_neck_duration, int):
+            raise ValueError("RTH plan entry pre-neck durations must be integers")
+
+        kwds["pre_neck_duration"] = pre_neck_duration
+
         return cls(**kwds)
 
     @property
     def has_pre_delay(self) -> bool:
         """Returns whether the entry has a (positive) pre-delay."""
         return self.pre_delay > 0
+
+    @property
+    def has_pre_neck(self) -> bool:
+        """Returns whether the entry has a pre-neck."""
+        return self.pre_neck_duration > 0
 
     @property
     def has_post_delay(self) -> bool:
@@ -133,7 +167,17 @@ class RTHPlanEntry:
         """Returns whether the action of this entry impliese that the entry
         has a target coordinate to consider.
         """
-        return self.action is RTHAction.GO_TO_KEEPING_ALTITUDE_AND_LAND
+        return self.action in [
+            RTHAction.GO_TO_KEEPING_ALTITUDE_AND_LAND,
+            RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND,
+        ]
+
+    @property
+    def has_target_altitude(self) -> bool:
+        """Returns whether the action of this entry impliese that the entry
+        has a target altitude coordinate to consider.
+        """
+        return self.action == RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND
 
     def is_same_as_except_timestamp(self, other: "RTHPlanEntry") -> bool:
         """Compares this entry with another one and returns whether they are
@@ -145,6 +189,19 @@ class RTHPlanEntry:
             and self.duration == other.duration
             and self.pre_delay == other.pre_delay
             and self.post_delay == other.post_delay
+            and self.pre_neck_duration == other.pre_neck_duration
+            and self.pre_neck_size == other.pre_neck_size
+        )
+
+    def is_same_action_as(self, other: "RTHPlanEntry") -> bool:
+        """Compares this entry with another one and returns whether they share
+        the same action with the same action parameters.
+        """
+        return (
+            self.action == other.action
+            and self.target == other.target
+            and self.pre_neck_duration == other.pre_neck_duration
+            and self.pre_neck_size == other.pre_neck_size
         )
 
     def to_json(self) -> Dict:
@@ -155,11 +212,15 @@ class RTHPlanEntry:
             result["target"] = self.target
             result["duration"] = self.duration
 
-            if self.has_pre_delay:
-                result["preDelay"] = self.pre_delay
+        if self.has_pre_neck:
+            result["preNeckSize"] = self.pre_neck_size
+            result["preNeckDuration"] = self.pre_neck_duration
 
-            if self.has_post_delay:
-                result["postDelay"] = self.post_delay
+        if self.has_pre_delay:
+            result["preDelay"] = self.pre_delay
+
+        if self.has_post_delay:
+            result["postDelay"] = self.post_delay
 
         return result
 
@@ -174,7 +235,7 @@ class RTHPlan(Sequence[RTHPlanEntry]):
 
     @classmethod
     def from_json(cls, data: Dict):
-        """Constructs an RTH plan from its JSON representation typically used
+        """Constructs an RTH plan from its JSON representation, typically used
         in show specifications.
         """
         plan = cls()
@@ -200,7 +261,7 @@ class RTHPlan(Sequence[RTHPlanEntry]):
     @property
     def bounding_box(self) -> Tuple[Sequence[float], Sequence[float]]:
         """The axis-aligned bounding box that encapsulates all target points
-        of the RTH plan.
+        and inner RTH trajectory nodes of the RTH plan.
         """
         return self.get_padded_bounding_box()
 
@@ -236,23 +297,29 @@ class RTHPlan(Sequence[RTHPlanEntry]):
         self, margin: float = 0
     ) -> Tuple[Sequence[float], Sequence[float]]:
         """Returns the coordinates of the opposite corners of the axis-aligned
-        bounding box that contains all the target points of the RTH plan,
-        optionally padded with the given margin.
+        bounding box that contains all the target points and inner trajectory
+        nodes of the RTH plan, optionally padded with the given margin.
 
         The first point will contain the minimum coordinates, the second will
         contain the maximum coordinates.
 
-        Parameters:
+        Args:
             margin: the margin to apply on each side of the bounding box
 
         Raises:
             ValueError: if the margin is negative or if the RTH plan has no
                 target point
         """
-        bbox = BoundingBoxCalculator(dim=2)
+        bbox = BoundingBoxCalculator(dim=3)
         for entry in self._entries:
             if entry.has_target:
-                bbox.add(entry.target)
+                bbox.add(
+                    entry.target
+                    if len(entry.target) == 3
+                    else (list(entry.target) + [0])
+                )
+            if entry.has_pre_neck:
+                bbox.add([0, 0, entry.pre_neck_size])
 
         if margin > 0:
             bbox.pad(margin)
@@ -266,7 +333,7 @@ class RTHPlan(Sequence[RTHPlanEntry]):
         try:
             mins, maxs = self.bounding_box
         except ValueError:
-            # None of the entries in the RTH plan contain a target point
+            # None of the entries in the RTH plan contain coordinates
             return 1
 
         coords = []

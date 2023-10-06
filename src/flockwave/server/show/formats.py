@@ -23,6 +23,7 @@ from typing import (
 )
 
 from flockwave.concurrency import aclosing
+from flockwave.server.utils.generic import consecutive_pairs
 
 from .rth_plan import RTHAction, RTHPlan, RTHPlanEntry
 from .trajectory import TrajectorySegment, TrajectorySpecification
@@ -702,6 +703,8 @@ class RTHPlanEncoder:
                 plan (after scaling) to the indices that they are encoded with
             chunks: the list that collects the encoded chunks
         """
+        entries = self._merge_duplicate_entries(entries)
+
         chunks.append(len(entries).to_bytes(2, "little"))
 
         previous_entry: Optional[RTHPlanEntry] = None
@@ -735,6 +738,8 @@ class RTHPlanEncoder:
         has_pre_delay = entry.has_pre_delay
         has_post_delay = entry.has_post_delay
         has_target = entry.has_target
+        has_target_altitude = entry.has_target_altitude
+        has_pre_neck = entry.has_pre_neck
 
         # First byte contains flags:
         #
@@ -751,14 +756,16 @@ class RTHPlanEncoder:
         #     no previous entry)
         # 1 = action is RTHAction.LAND
         # 2 = action is RTHAction.GO_TO_KEEPING_ALTITUDE_AND_LAND
+        # 3 = action is RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND
 
-        if previous_entry and entry.is_same_as_except_timestamp(previous_entry):
+        if previous_entry and entry.is_same_action_as(previous_entry):
             action_bits = 0
-            has_post_delay = has_pre_delay = has_target = False
         elif entry.action is RTHAction.LAND:
             action_bits = 1
         elif entry.action is RTHAction.GO_TO_KEEPING_ALTITUDE_AND_LAND:
             action_bits = 2
+        elif entry.action is RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND:
+            action_bits = 3
         else:
             raise ValueError(f"unknown RTH action: {entry.action}")
 
@@ -773,15 +780,34 @@ class RTHPlanEncoder:
         # entry as an integer
         chunks.append(encode_int(timestamp_diff))
 
-        # If the action has a target, encode the index of the point in little
-        # endian variable length integer format; the MSB in each byte is 1
-        # if the number continues in the next byte, otherwise it is zero. Then
-        # also encode the duration of the action.
-        if has_target:
+        # encode action params if the action is different from the previous
+        if action_bits > 0:
+            # If the action has a target, encode the index of the point in little
+            # endian variable length integer format; the MSB in each byte is 1
+            # if the number continues in the next byte, otherwise it is zero. Then
+            # also encode the duration of the action.
+            if has_target:
+                scaled_target = self._scale_point(entry.target[:2])
+                chunks.append(encode_int(point_index[scaled_target]))
+            # If the action has target altitude, encode it the same way
+            if has_target_altitude:
+                scaled_target_altitude = self._scale_coordinate(entry.target[2])
+                chunks.append(encode_int(scaled_target_altitude))
+            # If the action has pre neck, encode its size as a scaled coordinate
+            # and its duration as integer seconds
+            if has_pre_neck:
+                pre_neck_size = self._scale_coordinate(entry.pre_neck_size)
+                chunks.append(encode_int(pre_neck_size))
+                if entry.pre_neck_duration < 0:
+                    raise ValueError(
+                        f"RTH action has negative pre-neck duration: {entry.pre_neck_duration}"
+                    )
+                chunks.append(encode_int(int(entry.pre_neck_duration)))
+
+        # encode the duration of the entry for all actions but LAND
+        if entry.action != RTHAction.LAND:
             if entry.duration < 0:
                 raise ValueError(f"RTH action has negative duration: {entry.duration}")
-            scaled_target = self._scale_point(entry.target)
-            chunks.append(encode_int(point_index[scaled_target]))
             chunks.append(encode_int(int(entry.duration)))
 
         # If the action has a non-zero pre-/post-delay, encode it. We round them
@@ -825,10 +851,39 @@ class RTHPlanEncoder:
 
         return result
 
+    def _merge_duplicate_entries(
+        self, entries: Sequence[RTHPlanEntry]
+    ) -> List[RTHPlanEntry]:
+        """Merge consecutive entries with the same action and
+        action parameters.
+
+        Function assumes that entries are ordered according to their
+        `time` parameter and that their validity spans from the previous
+        entry's `time` (or zero if it is the first one) to its own `time`.
+
+        """
+
+        entries = list(entries)
+        if len(entries) < 2:
+            return entries
+
+        result = [
+            a
+            for a, b in consecutive_pairs(entries)
+            if not a.is_same_as_except_timestamp(b)
+        ]
+        if not result or result[-1] != entries[-1]:
+            result.append(entries[-1])
+
+        return result
+
     def _scale_point(self, point: Tuple[float, ...]) -> Tuple[int, ...]:
         if len(point) != 2:
             raise ValueError("each point must be two-dimensional")
         return (
-            round(point[0] * self._scale),
-            round(point[1] * self._scale),
+            self._scale_coordinate(point[0]),
+            self._scale_coordinate(point[1]),
         )
+
+    def _scale_coordinate(self, coord: float) -> int:
+        return round(coord * self._scale)
