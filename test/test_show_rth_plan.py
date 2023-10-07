@@ -105,7 +105,7 @@ class TestRTHPlanEntry:
         )
         assert entry.to_json() == {
             "time": 5,
-            "action": "goTo",
+            "action": "goToKeepAlt",
             "target": (20, 20),
             "duration": 10,
             "preDelay": 23,
@@ -119,19 +119,24 @@ class TestRTHPlanEntry:
             {},
             {"time": -2},
             {"time": 2.5},
-            {"time": 5, "action": "goTo", "target": ("aaa", 47)},
-            {"time": 5, "action": "goTo", "target": (20, 20)},
-            {"time": 5.0, "action": "goTo", "target": (20, 20), "duration": 3.1415},
+            {"time": 5, "action": "goToKeepAlt", "target": ("aaa", 47)},
+            {"time": 5, "action": "goToKeepAlt", "target": (20, 20)},
             {
                 "time": 5.0,
-                "action": "goTo",
+                "action": "goToKeepAlt",
+                "target": (20, 20),
+                "duration": 3.1415,
+            },
+            {
+                "time": 5.0,
+                "action": "goToKeepAlt",
                 "target": (20, 20),
                 "duration": 3.0,
                 "preDelay": "aaa",
             },
             {
                 "time": 5.0,
-                "action": "goTo",
+                "action": "goToKeepAlt",
                 "target": (20, 20),
                 "duration": 3.0,
                 "preDelay": 5.0,
@@ -177,14 +182,14 @@ class TestRTHPlan:
         assert len(plan) == 0
 
     def test_rth_plan_get_padded_bounding_box(self, plan: RTHPlan):
-        assert plan.get_padded_bounding_box(5) == ((-12, 15), (25, 40))
+        assert plan.get_padded_bounding_box(5) == ((-12, 15, -5), (25, 40, 5))
 
         plan.clear()
         with raises(ValueError):
             plan.get_padded_bounding_box(5)
 
     def test_rth_plan_bounding_box(self, plan: RTHPlan):
-        assert plan.bounding_box == ((-7, 20), (20, 35))
+        assert plan.bounding_box == ((-7, 20, 0), (20, 35, 0))
 
         plan.clear()
         with raises(ValueError):

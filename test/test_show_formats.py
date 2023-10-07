@@ -76,7 +76,7 @@ def plan() -> RTHPlan:
         time=80,
         action=RTHAction.GO_TO_KEEPING_ALTITUDE_AND_LAND,
         target=(30, 40),
-        duration=30,
+        duration=20,
     )
     plan.add_entry(entry)
 
@@ -105,8 +105,8 @@ ENCODED_RTH_PLAN_WITH_PROPOSED_SCALING_FACTOR = (
     b"\x22\x1e\x01\x32\x02"
     # Entry 4: time since previous = 20, go to (30, 40) in 30s
     b"\x20\x14\x00\x1e"
-    # Entry 5: time since previous = 15, otherwise same as previous
-    b"\x00\x0f"
+    # Entry 5: time since previous = 15, same as previous but in 20s
+    b"\x00\x0f\x14"
     # Entry 6: time since previous = 25, land
     b"\x10\x19"
 )
@@ -130,8 +130,8 @@ ENCODED_RTH_PLAN_WITH_SCALING_FACTOR_10 = (
     b"\x22\x1e\x01\x32\x02"
     # Entry 4: time since previous = 20, go to (30, 40) in 30s
     b"\x20\x14\x00\x1e"
-    # Entry 5: time since previous = 15, otherwise same as previous
-    b"\x00\x0f"
+    # Entry 5: time since previous = 15, same as previous but in 20s
+    b"\x00\x0f\x14"
     # Entry 6: time since previous = 25, land
     b"\x10\x19"
 )
