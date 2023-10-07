@@ -26,6 +26,16 @@ def plan() -> RTHPlan:
     )
     plan.add_entry(entry)
 
+    entry = RTHPlanEntry(
+        time=30,
+        action=RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND,
+        target=(-7, 35, 10),
+        duration=15,
+        pre_neck_size=5,
+        pre_neck_duration=5,
+    )
+    plan.add_entry(entry)
+
     entry = RTHPlanEntry(time=40, action=RTHAction.LAND)
     plan.add_entry(entry)
 
@@ -114,6 +124,29 @@ class TestRTHPlanEntry:
         restored_entry = RTHPlanEntry.from_json(entry.to_json())
         assert entry == restored_entry
 
+        entry = RTHPlanEntry(
+            time=5,
+            action=RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND,
+            target=(20, 20, 10),
+            duration=10,
+            pre_delay=23,
+            post_delay=3,
+            pre_neck_size=5,
+            pre_neck_duration=10,
+        )
+        assert entry.to_json() == {
+            "time": 5,
+            "action": "goToStraight",
+            "target": (20, 20, 10),
+            "duration": 10,
+            "preDelay": 23,
+            "postDelay": 3,
+            "preNeckSize": 5,
+            "preNeckDuration": 10,
+        }
+        restored_entry = RTHPlanEntry.from_json(entry.to_json())
+        assert entry == restored_entry
+
     def test_rth_plan_entry_invalid_json(self):
         invalids = [
             {},
@@ -182,14 +215,14 @@ class TestRTHPlan:
         assert len(plan) == 0
 
     def test_rth_plan_get_padded_bounding_box(self, plan: RTHPlan):
-        assert plan.get_padded_bounding_box(5) == ((-12, 15, -5), (25, 40, 5))
+        assert plan.get_padded_bounding_box(5) == ((-12, -5, -5), (25, 40, 15))
 
         plan.clear()
         with raises(ValueError):
             plan.get_padded_bounding_box(5)
 
     def test_rth_plan_bounding_box(self, plan: RTHPlan):
-        assert plan.bounding_box == ((-7, 20, 0), (20, 35, 0))
+        assert plan.bounding_box == ((-7, 0, 0), (20, 35, 10))
 
         plan.clear()
         with raises(ValueError):

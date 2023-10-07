@@ -80,6 +80,16 @@ def plan() -> RTHPlan:
     )
     plan.add_entry(entry)
 
+    entry = RTHPlanEntry(
+        time=90,
+        action=RTHAction.GO_TO_STRAIGHT_WITH_NECK_AND_LAND,
+        target=(-40, -30, 10),
+        duration=15,
+        pre_neck_size=5,
+        pre_neck_duration=5,
+    )
+    plan.add_entry(entry)
+
     entry = RTHPlanEntry(time=105, action=RTHAction.LAND)
     plan.add_entry(entry)
 
@@ -96,7 +106,7 @@ ENCODED_RTH_PLAN_WITH_PROPOSED_SCALING_FACTOR = (
     # Point 2: (-40, -30)
     b"\xe0\xb1\x68\xc5"
     # Number of entries
-    b"\x06\x00"
+    b"\x07\x00"
     # Entry 1: time=0, land
     b"\x10\x00"
     # Entry 2: time since previous = 15, go to (30, 40) in 50s, post-delay=5
@@ -107,8 +117,10 @@ ENCODED_RTH_PLAN_WITH_PROPOSED_SCALING_FACTOR = (
     b"\x20\x14\x00\x1e"
     # Entry 5: time since previous = 15, same as previous but in 20s
     b"\x00\x0f\x14"
-    # Entry 6: time since previous = 25, land
-    b"\x10\x19"
+    # Entry 6: time since previous = 10, go straight to (-40, -30, 10), with 5m neck in 5s, in 15s
+    b"\x30\x0a\x01\x88\x27\xc4\x13\x05\x0f"
+    # Entry 7: time since previous = 15, land
+    b"\x10\x0f"
 )
 
 ENCODED_RTH_PLAN_WITH_SCALING_FACTOR_10 = (
@@ -121,7 +133,7 @@ ENCODED_RTH_PLAN_WITH_SCALING_FACTOR_10 = (
     # Point 2: (-40, -30)
     b"\x60\xf0\x48\xf4"
     # Number of entries
-    b"\x06\x00"
+    b"\x07\x00"
     # Entry 1: time=0, land
     b"\x10\x00"
     # Entry 2: time since previous = 15, go to (30, 40) in 50s, post-delay=5
@@ -132,8 +144,10 @@ ENCODED_RTH_PLAN_WITH_SCALING_FACTOR_10 = (
     b"\x20\x14\x00\x1e"
     # Entry 5: time since previous = 15, same as previous but in 20s
     b"\x00\x0f\x14"
-    # Entry 6: time since previous = 25, land
-    b"\x10\x19"
+    # Entry 6: time since previous = 10, go straight to (-40, -30, 10), with 5m neck in 5s, in 15s
+    b"\x30\x0a\x01\xe8\x07\xf4\x03\x05\x0f"
+    # Entry 7: time since previous = 25, land
+    b"\x10\x0f"
 )
 
 

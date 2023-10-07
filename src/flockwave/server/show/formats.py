@@ -679,7 +679,7 @@ class RTHPlanEncoder:
         # Next, figure out the set of unique target points used in the plan,
         # and encode the points
         points: List[Tuple[int, ...]] = [
-            self._scale_point(entry.target) for entry in plan if entry.target
+            self._scale_point(entry.target[:2]) for entry in plan if entry.target
         ]
         point_index = self._encode_points(points, chunks)
 
