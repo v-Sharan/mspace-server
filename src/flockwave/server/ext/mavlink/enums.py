@@ -1,9 +1,29 @@
-from enum import IntEnum, IntFlag
-from flockwave.server.model.gps import GPSFixType as OurGPSFixType
+from enum import Enum, IntEnum, IntFlag
 from struct import Struct
 from typing import Union
 
+from flockwave.server.model.gps import GPSFixType as OurGPSFixType
+
 __all__ = ("MAVComponent",)
+
+
+class ConnectionState(Enum):
+    """Enum representing the possible connection states between the GCS and a
+    drone.
+    """
+
+    DISCONNECTED = "disconnected"
+    """Drone is disconnected, we have not received a heartbeat from it
+    recently.
+    """
+
+    SLEEPING = "sleeping"
+    """Drone is in a sleep state; we are receiving heartbeats but they indicate
+    that the flight controller is not fully powered on.
+    """
+
+    CONNECTED = "connected"
+    """Drone is fully connected."""
 
 
 class MAVAutopilot(IntEnum):
@@ -88,11 +108,15 @@ class MAVComponent(IntEnum):
     """Replica of the `MAV_COMPONENT` enum of the MAVLink protocol, using proper
     Python enums.
 
-    Not all values are listed here, only the ones that we do actually use.
+    Not all values are listed here, only the ones that we do actually use or
+    might use in the near future.
     """
 
     AUTOPILOT1 = 1
+    TELEMETRY_RADIO = 68
     MISSIONPLANNER = 190
+    UDP_BRIDGE = 240
+    UART_BRIDGE = 241
 
 
 class MAVDataStream(IntEnum):

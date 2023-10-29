@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.17.0] - 2023-10-29
+
+### Added
+
+- MAVLink `RADIO_STATUS` messages are now parsed if they originate from
+  a component that denotes a UDP-to-UART bridge. It is assumed that these
+  messages come from the `mavesp8266` firmware; the RSSI values in the message
+  are converted into percentages and stored on the server side. Live will be
+  updated soon to display the RSSI values.
+
+### Fixed
+
+- Fixed a bug with drones that are capable of entering a sleep state where the
+  autopilot type was not detected correctly after the drone was woken up.
+
+## [2.16.0] - 2023-10-25
+
+### Added
+
+- MAVLink networks now support sending and receiving MAVLink signed messages.
+  This feature is in an experimental stage yet and we appreciate any feedback
+  from users.
+
 ## [2.15.0] - 2023-09-21
 
 ### Added
@@ -31,7 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Broadcast messages from the `mavlink` extension can now be rate-limited to
   work around with packet loss issues in connections that cannot cope with
   bursty transmissions due to lack of flow control. This is a workaround that
-  should be enabled only if you are experincing packet loss problems and you
+  should be enabled only if you are experiencing packet loss problems and you
   suspect that it is due to lack of flow control.
 
 ## [2.14.0] - 2023-06-16

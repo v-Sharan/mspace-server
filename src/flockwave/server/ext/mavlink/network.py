@@ -48,6 +48,7 @@ from .enums import MAVAutopilot, MAVComponent, MAVMessageType, MAVState, MAVType
 from .led_lights import MAVLinkLEDLightConfigurationManager
 from .packets import DroneShowStatus
 from .rtk import RTKCorrectionPacketEncoder
+from .signing import MAVLinkSigningConfiguration
 from .takeoff import ScheduledTakeoffManager
 from .types import (
     MAVLinkMessageMatcher,
@@ -104,9 +105,16 @@ class MAVLinkNetwork:
     """Dictionary mapping MAVLink message types to lists of tuples consisting
     of an optional MAVLink system ID, a MAVLink message matching criterion and a
     future that will be resolved when a MAVLink message matching the criterion
-     is received from the given MAVLink system ID (or any system ID if no
-     system ID was specified).
-     """
+    is received from the given MAVLink system ID (or any system ID if no
+    system ID was specified).
+    """
+
+    _routing: Dict[str, List[int]]
+
+    _signing: MAVLinkSigningConfiguration
+    """Object that stores how the MAVLink connections should handle signed
+    messages (in both the inbound and the outbound directions).
+    """
 
     _uav_system_id_offset: int = 0
     """Offset to add to the system ID of each UAV in the network before it is
@@ -139,6 +147,7 @@ class MAVLinkNetwork:
             packet_loss=spec.packet_loss,
             statustext_targets=spec.statustext_targets,
             routing=spec.routing,
+            signing=spec.signing,
             uav_system_id_offset=spec.id_offset,
             use_broadcast_rate_limiting=spec.use_broadcast_rate_limiting,
         )
@@ -158,6 +167,7 @@ class MAVLinkNetwork:
         packet_loss: float = 0,
         statustext_targets: Optional[FrozenSet[str]] = None,
         routing: Optional[Dict[str, List[int]]] = None,
+        signing: MAVLinkSigningConfiguration = MAVLinkSigningConfiguration.DISABLED,
         uav_system_id_offset: int = 0,
         use_broadcast_rate_limiting: bool = False,
     ):
@@ -187,6 +197,8 @@ class MAVLinkNetwork:
                 use for sending that particular packet type. Not including a
                 particular packet type in the dictionary will let the system
                 choose the link on its own.
+            signing: object that specifies whether outgoing messages should be
+                signed and whether incoming unsigned messages are accepted.
             uav_system_id_offset: offset to add to the system ID of each UAV
                 before it is sent to the formatter function
         """
@@ -201,6 +213,7 @@ class MAVLinkNetwork:
         self._packet_loss = max(float(packet_loss), 0.0)
         self._routing = routing or {}
         self._scheduled_takeoff_manager = ScheduledTakeoffManager(self)
+        self._signing = signing
         self._statustext_targets = (
             frozenset(statustext_targets) if statustext_targets else frozenset()
         )
@@ -340,6 +353,7 @@ class MAVLinkNetwork:
             manager = create_communication_manager(
                 packet_loss=self._packet_loss,
                 system_id=self._system_id,
+                signing=self._signing,
                 use_broadcast_rate_limiting=self._use_broadcast_rate_limiting,
             )
 
@@ -686,6 +700,7 @@ class MAVLinkNetwork:
             "PARAM_VALUE": nop,
             "POSITION_TARGET_GLOBAL_INT": nop,
             "POWER_STATUS": nop,
+            "RADIO_STATUS": self._handle_message_radio_status,
             "STATUSTEXT": self._handle_message_statustext,
             "SYS_STATUS": self._handle_message_sys_status,
             "TIMESYNC": self._handle_message_timesync,
@@ -693,6 +708,7 @@ class MAVLinkNetwork:
         }
 
         autopilot_component_id = MAVComponent.AUTOPILOT1
+        udp_bridge_id = MAVComponent.UDP_BRIDGE
 
         # Many third-party MAVLink-based drones do not respond to broadcast
         # messages sent to them with an IP address of 255.255.255.255 as they
@@ -705,13 +721,24 @@ class MAVLinkNetwork:
         broadcast_address_updated: Dict[str, bool] = defaultdict(bool)
 
         async for connection_id, (message, address) in channel:
-            if message.get_srcComponent() != autopilot_component_id:
-                # We do not handle messages from any other component but an
-                # autopilot
-                continue
-
             # Uncomment this for debugging
             # self.log.info(repr(message))
+
+            # SiK radios use system ID = 51 and component ID = 68
+            # (MAV_COMP_ID_TELEMETRY_RADIO)
+            # mavesp8266 uses the correct system ID and component ID = 0xf0
+            # (MAV_COMP_ID_UDP_BRIDGE)
+
+            # Get the source component and the message type
+            src_component = message.get_srcComponent()
+            type = message.get_type()
+
+            # Determine whether we should process this message
+            should_process = src_component == autopilot_component_id or (
+                src_component == udp_bridge_id and type == "RADIO_STATUS"
+            )
+            if not should_process:
+                continue
 
             # Update the broadcast address to a subnet-specific one if needed
             if not broadcast_address_updated[connection_id]:
@@ -719,9 +746,6 @@ class MAVLinkNetwork:
                     connection_id, address
                 )
                 broadcast_address_updated[connection_id] = True
-
-            # Get the message type
-            type = message.get_type()
 
             # Resolve all futures that are waiting for this message
             for system_id, params, future in self._matchers[type]:
@@ -845,6 +869,14 @@ class MAVLinkNetwork:
         uav = self._find_uav_from_message(message, address)
         if uav:
             uav.handle_message_mag_cal_report(message)
+
+    def _handle_message_radio_status(
+        self, message: MAVLinkMessage, *, connection_id: str, address: Any
+    ):
+        """Handles an incoming MAVLink RADIO_STATUS message."""
+        uav = self._find_uav_from_message(message, address)
+        if uav:
+            uav.handle_message_radio_status(message)
 
     def _handle_message_statustext(
         self, message: MAVLinkMessage, *, connection_id: str, address: Any
@@ -1052,7 +1084,6 @@ class MAVLinkNetwork:
             )
 
 
-@staticmethod
 def format_channel_ids(ids: Sequence[str]) -> str:
     """Formats a list of communication channel IDs in a way that is suitable for
     printing in human-readable logs.
