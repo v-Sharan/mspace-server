@@ -9,7 +9,7 @@ from trio import (
     TooSlowError,
 )
 from trio.abc import ReceiveChannel, SendChannel
-from typing import AsyncIterator, Callable, Dict, List, Optional, Union
+from typing import AsyncIterator, Callable, Optional, Union
 
 from flockwave.concurrency import aclosing, Future
 from flockwave.logger import Logger
@@ -58,7 +58,7 @@ class MAVLinkLogDownloader:
     _log_being_downloaded: Optional[int] = None
     """ID of the log that is currently being downloaded."""
 
-    _log_listing_future: Optional[Future[List[FlightLogMetadata]]] = None
+    _log_listing_future: Optional[Future[list[FlightLogMetadata]]] = None
     """Future that resolves when the log listing operation completes."""
 
     _message_channel: Optional[SendChannel[MAVLinkMessage]] = None
@@ -100,7 +100,7 @@ class MAVLinkLogDownloader:
             self._log_being_downloaded = None
             self._message_channel = None
 
-    async def get_log_list(self) -> List[FlightLogMetadata]:
+    async def get_log_list(self) -> list[FlightLogMetadata]:
         """Retrieves the list of logs from the drone.
 
         A single drone supports a single log listing operation only. When you
@@ -137,6 +137,13 @@ class MAVLinkLogDownloader:
     ) -> AsyncIterator[Union[Progress, Optional[FlightLog]]]:
         last_progress_at = current_time()
 
+        # We are requesting at most 512 LOG_DATA messages at once to let the
+        # wifi module also take care of other things while doing the download.
+        # Requesting the entire log at once has caused timeout problems with
+        # mavesp8266. The strategy adopted here is identical to what
+        # QGroundControl is doing
+        MAX_CHUNK_SIZE = 512 * 90
+
         try:
             # Get the size of the log first and create a chunk assembler
             metadata = await self._get_single_log_metadata(log_id, rx)
@@ -144,12 +151,17 @@ class MAVLinkLogDownloader:
                 yield None
                 return
 
+            if metadata.size is None:
+                raise RuntimeError("unknown log size")
+
             chunks = ChunkAssembler(metadata.size)
-            log_data: List[bytes] = []
+            log_data: list[bytes] = []
             while not chunks.done:
-                start, count = chunks.get_next_range()
+                next_range = chunks.get_next_range(max_size=MAX_CHUNK_SIZE)
                 response: Optional[MAVLinkMessage] = await self._send_and_wait(
-                    spec.log_request_data(id=log_id, ofs=start, count=count),
+                    spec.log_request_data(
+                        id=log_id, ofs=next_range.offset, count=next_range.size
+                    ),
                     spec.log_data(),
                 )
 
@@ -168,14 +180,15 @@ class MAVLinkLogDownloader:
                             log_data.append(to_flush)
 
                     response = None
-                    if not chunks.done:
+                    if not chunks.done_with(next_range):
                         with move_on_after(3):
                             response = await rx.receive()
 
                     now = current_time()
                     if now - last_progress_at > 0.1:
                         yield Progress(
-                            percentage=chunks.percentage, message="Downloading log..."
+                            percentage=round(chunks.percentage),
+                            message="Downloading log...",
                         )
                         last_progress_at = current_time()
 
@@ -186,10 +199,10 @@ class MAVLinkLogDownloader:
 
     async def _get_log_list_inner(
         self, rx: ReceiveChannel[MAVLinkMessage]
-    ) -> List[FlightLogMetadata]:
+    ) -> list[FlightLogMetadata]:
         # Number of logs to download; ``None`` if we do not know it yet
         num_logs: Optional[int] = None
-        logs: Dict[int, FlightLogMetadata] = {}
+        logs: dict[int, FlightLogMetadata] = {}
 
         try:
             while num_logs is None or len(logs) < num_logs:
