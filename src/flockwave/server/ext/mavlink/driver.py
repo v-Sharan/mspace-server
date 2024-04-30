@@ -877,6 +877,23 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
         await self.broadcast_command_long_with_retries(
             MAVCommand.NAV_RETURN_TO_LAUNCH, channel=channel
         )
+        
+    async def _send_guided_mode_broadcast(self, uav: "MAVLinkUAV", *, transport=None) -> None:
+        channel = transport_options_to_channel(transport)
+
+        # TODO(ntamas): HACK HACK HACK This won't work for a PixHawk as we are
+        # hardcoding the ArduCopter mode numbers here. If we wanted to do this
+        # properly, we would not be able to broadcast because different UAVs
+        # may have different autopilots and the mode numbers might be different.
+        base_mode, mode, submode = MAVModeFlag.CUSTOM_MODE_ENABLED, 16, 0
+
+        await self.broadcast_command_long_with_retries(
+            MAVCommand.DO_SET_MODE,
+            param1=float(base_mode),
+            param2=float(mode),
+            param3=float(submode),
+            channel=channel,
+        )
 
     async def _send_return_to_home_signal_single(
         self, uav: "MAVLinkUAV", *, transport=None
@@ -889,6 +906,12 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
 
         if not success:
             raise RuntimeError("Return to home command failed")
+        
+    async def _send_guided_mode_single(
+        self, uav: "MAVLinkUAV", *, transport=None
+    ) -> None:
+        channel = transport_options_to_channel(transport)
+        await uav.set_mode("guided", channel=channel)
 
     async def _send_shutdown_signal_broadcast(self, *, transport=None) -> None:
         channel = transport_options_to_channel(transport)

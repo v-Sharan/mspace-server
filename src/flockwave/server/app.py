@@ -59,6 +59,7 @@ from .registries import (
     find_in_registry,
 )
 from .version import __version__ as server_version
+from .swarm import *
 
 __all__ = ("app",)
 
@@ -90,6 +91,8 @@ UAV_COMMAND_HANDLERS: dict[str, tuple[str, MessageBodyTransformationSpec]] = {
         "send_return_to_home_signal",
         {"transport": TransportOptions.from_json},
     ),
+    "X-UAV-GUIDED":("send_guided_mode",{"transport": TransportOptions.from_json}),
+    "X-UAV-socket":("send_guided_mode",{"transport": TransportOptions.from_json}),
     "UAV-SIGNAL": (
         "send_light_or_sound_emission_signal",
         {"duration": divide_by(1000), "transport": TransportOptions.from_json},
@@ -573,6 +576,76 @@ class SkybrushServer(DaemonApp):
             response.body["result"] = result
 
         return response
+    
+    async def socket_response(
+        self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
+    ) -> FlockwaveMessage:
+        # Create the response
+        response = self.message_hub.create_response_or_notification(
+            body={}, in_response_to=message
+        )
+
+        # Process the body
+        parameters = dict(message.body)
+        result = ""
+        if parameters['message'] == "master":
+            result = master(parameters["num"])
+            
+        if parameters['message'] == "start":
+            result = start_socket()
+        
+        if parameters['message'] == "stop":
+            result = stop_socket()
+            
+        if parameters['message'] == "home_lock":
+            result = home_lock()
+        
+        if parameters['message'] == "home":
+            result = home_socket()
+        
+        if parameters['message'] == "share_data":
+            result = share_data_func()
+        
+        if parameters['message'] == "disperse":
+            result = disperse_socket()
+        
+        if parameters['message'] == "takeoff":
+            result = takeoff_socket(parameters["takeoff_altitude"])
+            
+        if parameters['message'] == "search":
+            result = search_socket()
+            
+        if parameters['message'] == "aggregate":
+            result = aggregate_socket()
+            
+        if parameters['message'] == "different":
+            result = different_alt_socket(parameters["alt","alt_diff"])
+            
+        if parameters['message'] == "same":
+            result = same_alt_socket(parameters["same_alt"])
+        
+        if parameters['message'] == "stop":
+            result = stop_socket()
+        
+        if parameters['message'] == "clear_csv":
+            result = clear_csv() 
+            
+        if parameters['message'] == "return":
+            result = return_socket()
+            
+        if parameters['message'] == "specific_bot_goal":
+            result = specific_bot_goal_socket(parameters["uav_num","specific_goal_num"])
+        
+        if parameters['message'] == "goal":
+            result = goal_socket(parameters["goal_num"])
+        
+        if parameters['message'] == "home_goto":
+            result = home_goto_socket()
+        
+        response.body["message"] = result
+        response.body["method"] = parameters["message"]
+        
+        return response
 
     async def dispatch_to_uavs(
         self, message: FlockwaveMessage, sender: Client
@@ -617,18 +690,16 @@ class SkybrushServer(DaemonApp):
 
         # Find the method to invoke on the driver
         method_name, transformer = UAV_COMMAND_HANDLERS.get(message_type, NULL_HANDLER)
-
         # Transform the incoming arguments if needed before sending them
         # to the driver method
         parameters = transform_message_body(transformer, parameters)
-
         # Ask each affected driver to send the message to the UAV
         for driver, uavs in uavs_by_drivers.items():
             # Look up the method in the driver
             common_error, results = None, None
-            try:
+            try: 
                 method = getattr(driver, method_name)  # type: ignore
-            except (AttributeError, RuntimeError, TypeError):
+            except (AttributeError, RuntimeError, TypeError) as ex:
                 common_error = "Operation not supported"
                 method = None
 
@@ -687,7 +758,6 @@ class SkybrushServer(DaemonApp):
                             )
                         else:
                             response.add_result(uav.id, result)
-
         return response
 
     def find_uav_by_id(
@@ -1335,15 +1405,20 @@ async def handle_single_uav_operations(
     "UAV-RTH",
     "UAV-SLEEP",
     "UAV-SIGNAL",
-    "UAV-TAKEOFF",
     "UAV-TEST",
     "UAV-VER",
     "UAV-WAKEUP",
+    "UAV-TAKEOFF",
+    "X-UAV-GUIDED",
+    "X-UAV-socket",
 )
 async def handle_multi_uav_operations(
     message: FlockwaveMessage, sender: Client, hub: MessageHub
 ):
-    return await app.dispatch_to_uavs(message, sender)
-
+    print(message.body)
+    if message.get_type() == "X-UAV-socket":
+        return await app.socket_response(message,sender)
+    else:
+        return await app.dispatch_to_uavs(message, sender)
 
 # ######################################################################## #
