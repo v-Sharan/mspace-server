@@ -1,8 +1,26 @@
 import socket,time,csv
 from math import radians,cos,sin,sqrt,atan2
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(("",12009))
+def fetch_file_content(file_path):
+    lines = []
+    try:
+        with open(file_path, 'r') as file:
+            file_content = file.read()
+            new_lines = file_content.split('\n')
+
+            # Compare new lines with existing lines and append only unique ones
+            unique_new_lines = [line for line in new_lines]
+            parsed_messages = []
+            for line in unique_new_lines:
+                if line == "":
+                    continue
+                time, message = line.split("\t")
+                parsed_messages.append({'timestamp': time, 'message': message})
+
+            lines.extend(parsed_messages)
+    except IOError as error:
+        print('Error reading file:', error)
+    return lines
 
 master_num=0
 #udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -206,6 +224,7 @@ def clear_csv():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def start_socket():
     print("!!!Start!!")
@@ -275,6 +294,7 @@ def start1_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def home_lock():
     print("Home position Locked....!!!!")
@@ -308,6 +328,7 @@ def home_lock():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def select_plot(filename):
     if filename!="":
@@ -339,15 +360,17 @@ def select_plot(filename):
         time.sleep(0.5)
         '''
         file_sock10.sendto(str(filename).encode(),file_server_address10)
+        return True
 
-
-def share_data_func(goal_table,return_goal_table,grid_path_table):
+def share_data_func():
+    from flockwave.server.socket.globalVariable import get_goal_table,get_return_goal_table,get_grid_path_table
     #global goal_table,return_goal_table,filename,udp_socket,server_address1,server_address2,udp_socket2,grid_path_table
-    print("*******",goal_table) 
     #goal_table=[]
-
-    if return_goal_table is not None:
-        combined_goal_table = goal_table + return_goal_table 
+    grid_path_table = get_grid_path_table()
+    goal_table = get_goal_table()
+    
+    if get_return_goal_table() is not None:
+        combined_goal_table = get_goal_table() + get_return_goal_table() 
         print("combined_goal_table",combined_goal_table)
         '''
         share_data_udp_socket1.sendto(("share_data" + "," + str(combined_goal_table)+","+"grid_path_table" +","+str( grid_path_table)).encode(), share_data_server_address1)
@@ -406,7 +429,7 @@ def share_data_func(goal_table,return_goal_table,grid_path_table):
         time.sleep(0.5)
         '''
         share_data_udp_socket10.sendto(("share_data"+","+ str(goal_table)+","+"grid_path_table" +","+str( grid_path_table)).encode(), share_data_server_address10)
-
+    return True
 
 def disperse_socket(): 
     global udp_socket,server_address1,server_address2,udp_socket2
@@ -440,7 +463,7 @@ def disperse_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
-
+    return True
 
 def takeoff_socket(alt):
     print("Takeoff...........")
@@ -476,6 +499,7 @@ def takeoff_socket(alt):
     time.sleep(0.5)
     '''
     sent = udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def search_socket(): 
     global udp_socket,server_address1,server_address2,udp_socket2
@@ -508,6 +532,7 @@ def search_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def aggregate_socket():
     print("Aggregation..!!!!")
@@ -540,7 +565,7 @@ def aggregate_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
-
+    return True
 
 def home_socket(): 
     print("Home....******")
@@ -570,7 +595,38 @@ def home_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
+def airport_selection(filename):
+    print(filename)
+    '''
+    file_sock1.sendto(str(filename).encode(),file_server_address1)
+    time.sleep(0.5)
+    file_sock2.sendto(str(filename).encode(),file_server_address2)
+    time.sleep(0.5)
+    '''
+    file_sock3.sendto(str(filename).encode(),file_server_address3)
+    time.sleep(0.5)
+    '''
+    file_sock4.sendto(str(filename).encode(),file_server_address4)
+    time.sleep(0.5)
+    '''
+    file_sock5.sendto(str(filename).encode(),file_server_address5)
+    time.sleep(0.5)
+    '''
+    file_sock6.sendto(str(filename).encode(),file_server_address6)
+    time.sleep(0.5)
+    
+    file_sock7.sendto(str(filename).encode(),file_server_address7)		
+    time.sleep(0.5)
+    
+    file_sock8.sendto(str(filename).encode(),file_server_address8)
+    time.sleep(0.5)
+    file_sock9.sendto(str(filename).encode(),file_server_address9)
+    time.sleep(0.5)
+    '''
+    file_sock10.sendto(str(filename).encode(),file_server_address10)
+    return True
 
 def different_alt_socket(initial_alt,alt_diff):
     data =str(initial_alt)+str(",")+str(alt_diff)
@@ -606,6 +662,7 @@ def different_alt_socket(initial_alt,alt_diff):
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(g).encode(), server_address10)
+    return True
 
 def same_alt_socket(alt_same):
     print("Same_altitude")
@@ -639,11 +696,12 @@ def same_alt_socket(alt_same):
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(f).encode(), server_address10)
-
+    return True
 
 def home_goto_socket(): 
     #udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     data = "home_goto"
+    print(data)
     '''
     udp_socket.sendto(str(data).encode(), server_address1)
     time.sleep(0.5)
@@ -672,6 +730,7 @@ def home_goto_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def rtl_socket():
     global socket,udp_socket,server_address1,server_address2,udp_socket2
@@ -702,6 +761,7 @@ def rtl_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def stop_socket():
     print("STOP>>>>>>>>>>>>")
@@ -735,10 +795,12 @@ def stop_socket():
     time.sleep(0.5)
     '''
     socket10.sendto(str(data).encode(), server_address20)
+    return True
 
 def return_socket():
     global socket,return_flag,udp_socket,server_address1,server_address2,udp_socket2
     #print("&&&&&")
+    print("return")
     return_flag=True
     #udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     data = "return"
@@ -769,6 +831,7 @@ def return_socket():
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
+    return True
 
 def specific_bot_goal_socket(drone_num,goal_num): 
     print("$$$##Specific_bot_goal###")
@@ -801,7 +864,7 @@ def specific_bot_goal_socket(drone_num,goal_num):
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(d).encode(), server_address10)
-
+    return True
 
 def goal_socket(goal_num):     
     print("***Group goal*****!!!!!")
@@ -834,10 +897,10 @@ def goal_socket(goal_num):
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(d).encode(), server_address10)
+    return True
     
 def master(master_num):             
-    global master_ip
-    master_ip=master_num    
+ 
     data = "master" + "-" + str(master_num)
     print("data",data)
     '''
@@ -867,35 +930,13 @@ def master(master_num):
     time.sleep(0.5)
     '''
     socket10.sendto(str(data).encode(), server_address20)
+    result = mavlink_add(master_num)
+    return result
 
-    if master==1:
-        master_ip='192.168.29.151'
-    elif master==2:
-        master_ip='192.168.29.152'
-    elif master==3:
-        master_ip='192.168.29.153'
-    elif master==4:
-        master_ip='192.168.29.154'
-    elif master==5:
-        master_ip='192.168.29.155'
-    elif master==6:
-        master_ip='192.168.29.156'
-    elif master==7:
-        master_ip='192.168.29.157'
-    elif master==8:
-        master_ip='192.168.29.158'
-    elif master==9:
-        master_ip='192.168.29.159'
-    elif master==10:
-        master_ip='192.168.29.160'
-        
-    return True
-    #mavlink_add()
-
-def mavlink_add():
+def mavlink_add(master_num):
     global master_ip
     master_ip_array=['192.168.29.151','192.168.29.152','192.168.29.153','192.168.29.154','192.168.29.155','192.168.29.156','192.168.29.157','192.168.29.158','192.168.29.159','192.168.29.160']
-    master_ip=master_ip_array[int(master)-1]
+    master_ip=master_ip_array[int(master_num)-1]
     print("master_ip",master_ip)
     add='output add '
     remove='output remove '
@@ -905,7 +946,7 @@ def mavlink_add():
 
     data=add+master_ip
     #data=remove+master_ip
-    print("data",(data+port_array[0]),type(data))	
+    #print("data",(data+port_array[0]),type(data))	
     '''
     mavlink_sock1.sendto((data+port_array[0]).encode(), mavlink_server_address1)
     time.sleep(0.5)
@@ -933,10 +974,10 @@ def mavlink_add():
     time.sleep(0.5)
     '''
     mavlink_sock10.sendto((data+port_array[9]).encode(), mavlink_server_address10)
+    return True
 
 def mavlink_remove(remove_link):
-    global master_ip
-    #data = removelink_entry.get()
+     #data = removelink_entry.get()
     master_ip_array=['192.168.29.151','192.168.29.152','192.168.29.153','192.168.29.154','192.168.29.155','192.168.29.156','192.168.29.157','192.168.29.158','192.168.29.159','192.168.29.160']
     master_ip=master_ip_array[int(remove_link)-1]
     print("master_ip",master_ip)
@@ -944,7 +985,7 @@ def mavlink_remove(remove_link):
     remove='output remove '
     port_array=[':14551',':14552',':14553',':14554',':14555',':14556',':14557',':14558',':14559',':14560']
     data=remove+master_ip
-    print("data",(data+port_array[0]),type(data))
+    print("data",(data+port_array[remove_link-1]),type(data))
     '''
     mavlink_sock1.sendto((data+port_array[0]).encode(), mavlink_server_address1)
     time.sleep(0.5)
@@ -972,6 +1013,7 @@ def mavlink_remove(remove_link):
     time.sleep(0.5)
     '''
     mavlink_sock10.sendto((data+port_array[9]).encode(), mavlink_server_address10)
+    return True
 
 def bot_remove(remove_uav_num):
     print("!!!bot_remove!!")
@@ -1005,4 +1047,4 @@ def bot_remove(remove_uav_num):
     time.sleep(0.5)
     '''
     udp_socket10.sendto(str(data).encode(), server_address10)
-
+    return True

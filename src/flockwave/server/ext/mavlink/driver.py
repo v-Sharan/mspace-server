@@ -944,6 +944,7 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
     async def _send_takeoff_signal_single(
         self, uav: "MAVLinkUAV", *, scheduled: bool = False, transport=None
     ) -> None:
+        from flockwave.server.socket.globalVariable import getTakeoffAlt
         if scheduled:
             # Ignore this; scheduled takeoffs are managed by the ScheduledTakeoffManager
             return
@@ -957,9 +958,15 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
         # Wait a bit to give the autopilot some time to start the motors, just
         # in case. Not sure whether this is needed.
         await sleep(0.1)
+        alt = 2.5
+        rel = getTakeoffAlt()
+        if rel:
+            alt = rel
+        
+        print(alt)
 
         # Send the takeoff command
-        await uav.takeoff_to_relative_altitude(2.5, channel=channel)
+        await uav.takeoff_to_relative_altitude(alt, channel=channel)
 
     async def _set_parameter_single(
         self, uav: "MAVLinkUAV", name: str, value: Any
