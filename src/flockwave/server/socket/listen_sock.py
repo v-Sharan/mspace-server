@@ -80,19 +80,15 @@ def run_socket():
                     minutes = int(float(search_time) // 60)
                     seconds = int(float(search_time) % 60)
                     update_coverage_time(area_covered, minutes, seconds)
-                        
-                if data.startswith("remove_uav,"):
-                    a = data.split(",")
-                    area_covered = a[1]
-                    search_time = a[2]
-                    grid_path_array_str = ",".join(a[3:])
-                    grid_path_table = json.loads(grid_path_array_str)
-                    update_grid_path_table(grid_path_table)
-                    
-                    minutes = int(float(search_time) // 60)
-                    seconds = int(float(search_time) % 60)
-                    update_coverage_time(area_covered, minutes, seconds)
                 
+                    
+                if data.startswith("remove_uav_grid_path_file_name"):
+                    a = data.split(",")
+                    file_name=(a[1])
+                    grid_path_length=(a[2])
+                    if file_name not in getRemovedUAVfilename:
+                        update_RemovedUAVfilename(file_name,grid_path_length)
+                    
                 a = data.split(",")
                 # #print('a',a[-1],type(a[-1]))
 

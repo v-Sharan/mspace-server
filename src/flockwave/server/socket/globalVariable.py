@@ -7,6 +7,9 @@ Takeoff_Alt = 2.5
 logCounter = 0
 log_file_path = ""
 area_covered, minutes, seconds = 0,0,0
+removed_uav_grid_file_name=[]
+removed_uav_grid_path_length=[]
+
 
 def update_coverage_time(area_covered1, minutes1, seconds1):
     global area_covered, minutes, seconds
@@ -81,3 +84,16 @@ def update_Takeoff_Alt(alt):
 def getTakeoffAlt():
     global Takeoff_Alt
     return Takeoff_Alt
+
+def update_RemovedUAVfilename(filename,grid_path_length):
+    global removed_uav_grid_file_name,removed_uav_grid_path_length
+    removed_uav_grid_file_name=filename
+    removed_uav_grid_path_length=grid_path_length
+    
+def getRemovedUAVfilename():
+    global removed_uav_grid_file_name
+    return removed_uav_grid_file_name
+
+def getRemovedUAVgridpathlength():
+    global removed_uav_grid_path_length
+    return removed_uav_grid_path_length
