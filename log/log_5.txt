@@ -1,5 +1,0 @@
-12:19:41	Drone 10 master_num 2 data received
-12:19:41	Drone 10 master_num 2 data received
-12:19:41	master_num 2
-12:19:41	master_num 2
-12:19:41	master_num 2

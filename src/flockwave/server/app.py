@@ -69,7 +69,7 @@ PACKAGE_NAME = __name__.rpartition(".")[0]
 
 if get_logCounter() == 0:
     sample_name = "log_"
-    folder_path = "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/log"
+    folder_path = "C:/Users/vshar/OneDrive/Documents/mspace-server/log"
     log_list = listdir(folder_path)
     num_log = len(log_list) + 1
     file_name = sample_name+str(num_log)+str(".txt")
