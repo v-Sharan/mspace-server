@@ -3,7 +3,7 @@
 from appdirs import AppDirs
 from collections import defaultdict
 from inspect import isawaitable, isasyncgen
-from os import environ,listdir,path
+from os import environ, listdir, path
 from trio import (
     BrokenResourceError,
     move_on_after,
@@ -62,30 +62,35 @@ from .registries import (
 from .version import __version__ as server_version
 from .swarm import *
 from .socket.listen_sock import run_socket
-from .socket.globalVariable import get_logCounter,update_log_file_path,update_logCounter
+from .socket.globalVariable import (
+    get_logCounter,
+    update_log_file_path,
+    update_logCounter,
+)
+
 __all__ = ("app",)
 
 PACKAGE_NAME = __name__.rpartition(".")[0]
 
-if get_logCounter() == 0:
-    sample_name = "log_"
-    folder_path = "C:/Users/vshar/OneDrive/Documents/mspace-server/log"
-    log_list = listdir(folder_path)
-    num_log = len(log_list) + 1
-    file_name = sample_name+str(num_log)+str(".txt")
-    file_path = path.join(folder_path,file_name)
-    update_log_file_path(file_path)
-    try:
-        # Try to open the file in exclusive creation mode ('x')
-        with open(file_path, 'x') as file:
-            # If the file doesn't exist, it will be created
-            print(f"File created: {file_path}")
-        update_logCounter()
-    except FileExistsError:
-        # If the file already exists, print a message
-        print(f"File already exists: {file_path}")
+# if get_logCounter() == 0:
+#     sample_name = "log_"
+#     folder_path = "C:/Users/vshar/OneDrive/Documents/mspace-server/log"
+#     log_list = listdir(folder_path)
+#     num_log = len(log_list) + 1
+#     file_name = sample_name+str(num_log)+str(".txt")
+#     file_path = path.join(folder_path,file_name)
+#     update_log_file_path(file_path)
+#     try:
+#         # Try to open the file in exclusive creation mode ('x')
+#         with open(file_path, 'x') as file:
+#             # If the file doesn't exist, it will be created
+#             print(f"File created: {file_path}")
+#         update_logCounter()
+#     except FileExistsError:
+#         # If the file already exists, print a message
+#         print(f"File already exists: {file_path}")
 
-threading.Thread(target=run_socket,daemon=True).start()
+# threading.Thread(target=run_socket,daemon=True).start()
 
 #: Table that describes the handlers of several UAV-related command requests
 UAV_COMMAND_HANDLERS: dict[str, tuple[str, MessageBodyTransformationSpec]] = {
@@ -112,8 +117,8 @@ UAV_COMMAND_HANDLERS: dict[str, tuple[str, MessageBodyTransformationSpec]] = {
         "send_return_to_home_signal",
         {"transport": TransportOptions.from_json},
     ),
-    "X-UAV-GUIDED":("send_guided_mode",{"transport": TransportOptions.from_json}),
-    "X-UAV-socket":("send_guided_mode",{"transport": TransportOptions.from_json}),
+    "X-UAV-GUIDED": ("send_guided_mode", {"transport": TransportOptions.from_json}),
+    "X-UAV-socket": ("send_guided_mode", {"transport": TransportOptions.from_json}),
     "UAV-SIGNAL": (
         "send_light_or_sound_emission_signal",
         {"duration": divide_by(1000), "transport": TransportOptions.from_json},
@@ -597,15 +602,14 @@ class SkybrushServer(DaemonApp):
             response.body["result"] = result
 
         return response
-    
+
     # async def camera_actions(self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id") -> FlockwaveMessage:
     #     response = self.message_hub.create_response_or_notification(
     #         body={}, in_response_to=message
     #     )
     #     parameters = dict(message.body)
     #     from .socket.globalVariable import get_camera_url,update_camera_url
-        
-    
+
     async def socket_response(
         self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
     ) -> FlockwaveMessage:
@@ -613,80 +617,89 @@ class SkybrushServer(DaemonApp):
         response = self.message_hub.create_response_or_notification(
             body={}, in_response_to=message
         )
-        from .socket.globalVariable import get_coverage_time,get_log_file_path
+        from .socket.globalVariable import get_coverage_time, get_log_file_path
+
         # Process the body
         parameters = dict(message.body)
         result = ""
         msg = parameters["message"].lower()
+
+        if msg == "sparedrone":
+            result = parameters.pop("uav")
+
         if msg == "master":
             result = master(int(parameters["uav"]))
-            
-        if(msg == "coverage"):
+
+        if msg == "coverage":
             result = get_coverage_time()
-            
+
         if msg == "start":
             result = start_socket()
-        
+
         if msg == "stop":
             result = stop_socket()
-            
+
         if msg == "home_lock":
             result = home_lock()
-        
+
         if msg == "home":
             result = home_socket()
-        
+
         if msg == "share_data":
             result = share_data_func()
-        
+
         if msg == "disperse":
             result = disperse_socket()
-            
+
         if msg == "search":
             result = search_socket()
-            
+
         if msg == "aggregate":
             result = aggregate_socket()
-            
-        if msg == "different": #TODO
-            result = different_alt_socket(parameters["alt"],parameters["alt_diff"])
-            
-        if msg == "same": #TODO
+
+        if msg == "different":  # TODO
+            result = different_alt_socket(parameters["alt"], parameters["alt_diff"])
+
+        if msg == "same":  # TODO
             result = same_alt_socket(parameters["same_alt"])
-        
+
         if msg == "clear_csv":
-            result = clear_csv() 
-            
+            result = clear_csv()
+
         if msg == "return":
             result = return_socket()
-            
+
         if msg == "specific_bot_goal":
-            result = specific_bot_goal_socket(parameters["uav"],parameters["goal"])
-        
+            result = specific_bot_goal_socket(parameters["uav"], parameters["goal"])
+
         if msg == "goal":
             result = goal_socket(parameters["goal"])
-        
-        if msg == "home_goto": 
+
+        if msg == "home_goto":
             result = home_goto_socket()
-            
-        if msg == "plot": 
-            result = airport_selection(parameters['location'].capitalize()+str("_")+parameters["runwayName"].lower())
-        
-        if msg == "log":            
+
+        if msg == "plot":
+            result = airport_selection(
+                parameters["location"].capitalize()
+                + str("_")
+                + parameters["runwayName"].lower()
+            )
+
+        if msg == "log":
             result = fetch_file_content(get_log_file_path())
-            
-        if msg == "remove_link":            
-            result = mavlink_remove(int(parameters['uav']))
-        
+
+        if msg == "remove_link":
+            result = mavlink_remove(int(parameters["uav"]))
+
         if msg == "add_link":
-            result = mavlink_add(int(parameters['uav']))
-            
+            result = mavlink_add(int(parameters["uav"]))
+
         if msg == "remove_uav":
-            result = bot_remove(int(parameters['uav']))
-            
+            result = bot_remove(int(parameters["uav"]))
+
         response.body["message"] = result
         response.body["method"] = msg
-        
+
         return response
 
     async def dispatch_to_uavs(
@@ -717,9 +730,10 @@ class SkybrushServer(DaemonApp):
         message_type = parameters.pop("type")
         uav_ids: Sequence[str] = parameters.pop("ids", ())
         transport: Any = parameters.get("transport")
-        if(message_type == "UAV-TAKEOFF"):
+        if message_type == "UAV-TAKEOFF":
             from .socket.globalVariable import update_Takeoff_Alt
-            update_Takeoff_Alt(int(parameters.pop('alt')))
+
+            update_Takeoff_Alt(int(parameters.pop("alt")))
 
         # Sort the UAVs being targeted by drivers. If `transport` is a
         # TransportOptions object and it indicates that we should ignore the
@@ -742,7 +756,7 @@ class SkybrushServer(DaemonApp):
         for driver, uavs in uavs_by_drivers.items():
             # Look up the method in the driver
             common_error, results = None, None
-            try: 
+            try:
                 method = getattr(driver, method_name)  # type: ignore
             except (AttributeError, RuntimeError, TypeError) as ex:
                 common_error = "Operation not supported"
@@ -1461,13 +1475,14 @@ async def handle_multi_uav_operations(
     message: FlockwaveMessage, sender: Client, hub: MessageHub
 ):
     if message.get_type() == "X-UAV-socket":
-        return await app.socket_response(message,sender)
+        return await app.socket_response(message, sender)
     else:
         return await app.dispatch_to_uavs(message, sender)
-    
+
+
 # @app.message_hub.on("X-CAMERA-TEST")
 # async def handleCameraActions(message: FlockwaveMessage, sender: Client, hub: MessageHub):
 #     return await app.camera_actions(message, sender)
-    
+
 
 # ######################################################################## #
