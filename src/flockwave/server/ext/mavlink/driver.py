@@ -877,8 +877,10 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
         await self.broadcast_command_long_with_retries(
             MAVCommand.NAV_RETURN_TO_LAUNCH, channel=channel
         )
-        
-    async def _send_guided_mode_broadcast(self, uav: "MAVLinkUAV", *, transport=None) -> None:
+
+    async def _send_guided_mode_broadcast(
+        self, uav: "MAVLinkUAV", *, transport=None
+    ) -> None:
         channel = transport_options_to_channel(transport)
 
         # TODO(ntamas): HACK HACK HACK This won't work for a PixHawk as we are
@@ -906,12 +908,30 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
 
         if not success:
             raise RuntimeError("Return to home command failed")
-        
+
     async def _send_guided_mode_single(
         self, uav: "MAVLinkUAV", *, transport=None
     ) -> None:
         channel = transport_options_to_channel(transport)
         await uav.set_mode("guided", channel=channel)
+
+    async def _send_mission_upload_and_start_signal(
+        self, uav: "MAVLinkUAV", *, transport=None
+    ) -> None:
+        channel = transport_options_to_channel(transport)
+        success = await self.send_command_int(
+            uav, MAVCommand.NAV_WAYPOINT,param1=0,param5=12.9305452,param6=80.0456250,param7=30
+        )
+        if not success:
+            raise RuntimeError("Mission Upload and Start command failed")
+
+    async def _send_mission_upload_and_start_signal_broadcast(
+        self, uav: "MAVLinkUAV", *, transport=None
+    ) -> None:
+        channel = transport_options_to_channel(transport)
+        await self.broadcast_command_long_with_retries(
+            MAVCommand.NAV_RETURN_TO_LAUNCH, channel=channel
+        )
 
     async def _send_shutdown_signal_broadcast(self, *, transport=None) -> None:
         channel = transport_options_to_channel(transport)
@@ -945,6 +965,7 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
         self, uav: "MAVLinkUAV", *, scheduled: bool = False, transport=None
     ) -> None:
         from flockwave.server.socket.globalVariable import getTakeoffAlt
+
         if scheduled:
             # Ignore this; scheduled takeoffs are managed by the ScheduledTakeoffManager
             return
@@ -962,7 +983,7 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
         rel = getTakeoffAlt()
         if rel:
             alt = rel
-        
+
         print(alt)
 
         # Send the takeoff command
@@ -2394,7 +2415,8 @@ class MAVLinkUAV(UAVBase):
         not_healthy_sensors = sensor_mask & (
             # Python has no proper bitwise negation on unsigned integers
             # so we use XOR instead
-            sys_status.onboard_control_sensors_health ^ 0xFFFFFFFF
+            sys_status.onboard_control_sensors_health
+            ^ 0xFFFFFFFF
         )
 
         has_gyro_error = not_healthy_sensors & (

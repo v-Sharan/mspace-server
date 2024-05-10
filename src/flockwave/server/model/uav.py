@@ -896,6 +896,7 @@ class UAVDriver(Generic[TUAV], metaclass=ABCMeta):
             getattr(self, "_send_return_to_home_signal_broadcast", None),
             transport=transport,
         )
+
     def send_guided_mode(
         self, uavs: list[TUAV], transport: Optional[TransportOptions] = None
     ):
@@ -904,7 +905,7 @@ class UAVDriver(Generic[TUAV], metaclass=ABCMeta):
 
         Typically, you don't need to override this method when implementing
         a driver; override ``_send_guided_mode_single()`` and
-        optionally ``_send_return_to_home_signal_broadcast()`` instead.
+        optionally ``_send_guided_mode_broadcast()`` instead.
 
         Parameters:
             uavs: the UAVs to address with this request.
@@ -920,6 +921,33 @@ class UAVDriver(Generic[TUAV], metaclass=ABCMeta):
             "guided mode signal",
             self._send_guided_mode_single,
             getattr(self, "_send_guided_mode_broadcast", None),
+            transport=transport,
+        )
+
+    def mission_upload_and_start(
+        self, uavs: list[TUAV], transport: Optional[TransportOptions] = None
+    ):
+        """Asks the driver to send a return-to-home signal to the given
+        UAVs, each of which are assumed to be managed by this driver.
+
+        Typically, you don't need to override this method when implementing
+        a driver; override ``_send_guided_mode_single()`` and
+        optionally ``_send_guided_mode_broadcast()`` instead.
+
+        Parameters:
+            uavs: the UAVs to address with this request.
+            transport: transport options for sending the signal
+
+        Returns:
+            dict mapping UAVs to the corresponding results (which may also be
+            errors or awaitables; it is the responsibility of the caller to
+            evaluate errors and wait for awaitables)
+        """
+        return self._dispatch_request(
+            uavs,
+            "guided mode signal",
+            self._send_mission_upload_and_start_signal,
+            getattr(self, "_send_mission_upload_and_start_signal_broadcast", None),
             transport=transport,
         )
 
@@ -1451,7 +1479,32 @@ class UAVDriver(Generic[TUAV], metaclass=ABCMeta):
                 driver and will not be supported in the future either
         """
         raise NotImplementedError
-    
+
+    def _send_mission_upload_and_start_signal(
+        self, uav: TUAV, *, transport: Optional[TransportOptions] = None
+    ) -> None:
+        """Asks the driver to send a return-to-home signal to a single UAV
+        managed by this driver.
+
+        May return an awaitable if sending the signal takes a longer time.
+
+        The function follows the "samurai principle", i.e. "return victorious,
+        or not at all". It means that if it returns, the operation succeeded.
+        Raise an exception if the operation cannot be executed for any reason;
+        a RuntimeError is typically sufficient.
+
+        Parameters:
+            uav: the UAV to address with this request.
+            transport: transport options for sending the signal
+
+        Raises:
+            NotImplementedError: if the operation is not supported by the
+                driver yet, but there are plans to implement it
+            NotSupportedError: if the operation is not supported by the
+                driver and will not be supported in the future either
+        """
+        raise NotImplementedError
+
     def _send_guided_mode_single(
         self, uav: TUAV, *, transport: Optional[TransportOptions] = None
     ) -> None:

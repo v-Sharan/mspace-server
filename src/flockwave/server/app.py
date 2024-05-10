@@ -118,7 +118,10 @@ UAV_COMMAND_HANDLERS: dict[str, tuple[str, MessageBodyTransformationSpec]] = {
         {"transport": TransportOptions.from_json},
     ),
     "X-UAV-GUIDED": ("send_guided_mode", {"transport": TransportOptions.from_json}),
-    "X-UAV-socket": ("send_guided_mode", {"transport": TransportOptions.from_json}),
+    "X-UAV-MISSION": (
+        "mission_upload_and_start",
+        {"transport": TransportOptions.from_json},
+    ),
     "UAV-SIGNAL": (
         "send_light_or_sound_emission_signal",
         {"duration": divide_by(1000), "transport": TransportOptions.from_json},
@@ -624,9 +627,6 @@ class SkybrushServer(DaemonApp):
         result = ""
         msg = parameters["message"].lower()
 
-        if msg == "sparedrone":
-            result = parameters.pop("uav")
-
         if msg == "master":
             result = master(int(parameters["uav"]))
 
@@ -739,6 +739,11 @@ class SkybrushServer(DaemonApp):
         # TransportOptions object and it indicates that we should ignore the
         # UAV IDs, get hold of all registered UAV drivers as well and extend
         # the uavs_by_drivers dict
+        if message_type == "X-UAV-MISSION":
+            # from .socket.globalVariable
+            mission_uav = parameters.pop("uav")
+            mission = parameters.pop("mission")
+
         uavs_by_drivers = self.sort_uavs_by_drivers(uav_ids, response)
         if transport and isinstance(transport, dict) and transport.get("ignoreIds"):
             # TODO(ntamas): we do not have legitimate ways to communicate an
@@ -758,7 +763,9 @@ class SkybrushServer(DaemonApp):
             common_error, results = None, None
             try:
                 method = getattr(driver, method_name)  # type: ignore
+                print(method)
             except (AttributeError, RuntimeError, TypeError) as ex:
+                print("error")
                 common_error = "Operation not supported"
                 method = None
 
@@ -1470,6 +1477,7 @@ async def handle_single_uav_operations(
     "UAV-TAKEOFF",
     "X-UAV-GUIDED",
     "X-UAV-socket",
+    "X-UAV-MISSION",
 )
 async def handle_multi_uav_operations(
     message: FlockwaveMessage, sender: Client, hub: MessageHub
