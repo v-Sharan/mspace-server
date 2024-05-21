@@ -15,6 +15,8 @@ from flockwave import logger
 from .logger import log
 from .utils.packaging import is_packaged
 from .version import __version__
+from .socket.globalVariable import update_vehicle
+from .VTOL import Connect_vehicles
 
 
 @click.command()
@@ -44,6 +46,11 @@ from .version import __version__
     default="fancy",
     help="Specify the style of the logging output",
 )
+@click.option(
+    "--dronekit",
+    default=False,
+    help="whether to connect dronekit are not",
+)
 @click.version_option(version=__version__)
 def start(
     config: str,
@@ -51,6 +58,7 @@ def start(
     debug: bool = False,
     quiet: bool = False,
     log_style: str = "fancy",
+    dronekit: bool = False,
 ):
     """Start the Skybrush server."""
     # Set up the logging format
@@ -93,6 +101,14 @@ def start(
     # time we start configuring the app.
     from flockwave.server.app import app
 
+    if dronekit:
+        try:
+            vehicles = Connect_vehicles(log)
+            update_vehicle(veh=vehicles)
+        except Exception as e:
+            print(e)
+            exit
+
     # Log what we are doing
     log.info(f"Starting Skybrush server {__version__}")
 
@@ -103,6 +119,12 @@ def start(
 
     # Now start the server
     trio.run(app.run)
+
+    # Log that we have stopped cleanly.
+    if dronekit:
+        for vehicle in vehicles:
+            vehicle.close()
+            log.info("{} is closed".format(vehicle))
 
     # Log that we have stopped cleanly.
     log.info("Shutdown finished")

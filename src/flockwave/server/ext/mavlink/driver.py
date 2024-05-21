@@ -897,6 +897,25 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
             channel=channel,
         )
 
+    async def _send_auto_mode_broadcast(
+        self, uav: "MAVLinkUAV", *, transport=None
+    ) -> None:
+        channel = transport_options_to_channel(transport)
+
+        # TODO(ntamas): HACK HACK HACK This won't work for a PixHawk as we are
+        # hardcoding the ArduCopter mode numbers here. If we wanted to do this
+        # properly, we would not be able to broadcast because different UAVs
+        # may have different autopilots and the mode numbers might be different.
+        base_mode, mode, submode = MAVModeFlag.CUSTOM_MODE_ENABLED, 16, 0
+
+        await self.broadcast_command_long_with_retries(
+            MAVCommand.DO_SET_MODE,
+            param1=float(base_mode),
+            param2=float(mode),
+            param3=float(submode),
+            channel=channel,
+        )
+
     async def _send_return_to_home_signal_single(
         self, uav: "MAVLinkUAV", *, transport=None
     ) -> None:
@@ -915,23 +934,11 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
         channel = transport_options_to_channel(transport)
         await uav.set_mode("guided", channel=channel)
 
-    async def _send_mission_upload_and_start_signal(
+    async def _send_auto_mode_single(
         self, uav: "MAVLinkUAV", *, transport=None
     ) -> None:
         channel = transport_options_to_channel(transport)
-        success = await self.send_command_int(
-            uav, MAVCommand.NAV_WAYPOINT,param1=0,param5=12.9305452,param6=80.0456250,param7=30
-        )
-        if not success:
-            raise RuntimeError("Mission Upload and Start command failed")
-
-    async def _send_mission_upload_and_start_signal_broadcast(
-        self, uav: "MAVLinkUAV", *, transport=None
-    ) -> None:
-        channel = transport_options_to_channel(transport)
-        await self.broadcast_command_long_with_retries(
-            MAVCommand.NAV_RETURN_TO_LAUNCH, channel=channel
-        )
+        await uav.set_mode(10, channel=channel)
 
     async def _send_shutdown_signal_broadcast(self, *, transport=None) -> None:
         channel = transport_options_to_channel(transport)
@@ -983,8 +990,6 @@ class MAVLinkDriver(UAVDriver["MAVLinkUAV"]):
         rel = getTakeoffAlt()
         if rel:
             alt = rel
-
-        print(alt)
 
         # Send the takeoff command
         await uav.takeoff_to_relative_altitude(alt, channel=channel)
@@ -1543,6 +1548,9 @@ class MAVLinkUAV(UAVBase):
             # Do not raise an exception here, otherwise it would be an easy way
             # to crash the extension -- just send an unsupported COMMAND_LONG
             pass
+
+    def handle_vfr_hud(self, message: MAVLinkMessage):
+        self.update_status(airspeed=message.airspeed)
 
     def handle_message_drone_show_status(self, message: MAVLinkMessage):
         """Handles an incoming drone show specific status message targeted at
@@ -2189,7 +2197,7 @@ class MAVLinkUAV(UAVBase):
                 param1=message_id,
                 param2=1000000 / interval_hz,
             )
-
+            print("success......", success)
             if not success:
                 self.driver.log.warning(
                     f"Failed to configure data stream rate for message {message_id}",

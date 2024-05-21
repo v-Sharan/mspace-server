@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Placemark id="3">
+            <name>1_1</name>
+            <Point id="2">
+                <coordinates>80.23411560058594,13.389535903930664,30.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="5">
+            <name>1_2</name>
+            <Point id="4">
+                <coordinates>80.23592376708984,13.389577865600586,30.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="7">
+            <name>1_3</name>
+            <Point id="6">
+                <coordinates>80.2359848022461,13.394149780273438,30.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="9">
+            <name>1_4</name>
+            <Point id="8">
+                <coordinates>80.22734069824219,13.39369010925293,30.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="11">
+            <name>1_5</name>
+            <Point id="10">
+                <coordinates>80.22740936279297,13.388179779052734,30.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="13">
+            <name>1_6</name>
+            <Point id="12">
+                <coordinates>80.23381805419922,13.388283729553223,30.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="15">
+            <name>1_7</name>
+            <Point id="14">
+                <coordinates>80.23384094238281,13.391122817993164,30.0</coordinates>
+            </Point>
+        </Placemark>
+    </Document>
+</kml>

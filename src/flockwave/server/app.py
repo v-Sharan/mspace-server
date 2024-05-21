@@ -28,7 +28,7 @@ from flockwave.server.utils.system_time import (
     get_system_time_msec,
     set_system_time_msec_async,
 )
-import threading
+import math
 
 from .commands import CommandExecutionManager, CommandExecutionStatus
 from .errors import NotSupportedError
@@ -68,9 +68,12 @@ from .socket.globalVariable import (
     update_logCounter,
 )
 
+import subprocess
+
 __all__ = ("app",)
 
 PACKAGE_NAME = __name__.rpartition(".")[0]
+
 
 # if get_logCounter() == 0:
 #     sample_name = "log_"
@@ -118,10 +121,7 @@ UAV_COMMAND_HANDLERS: dict[str, tuple[str, MessageBodyTransformationSpec]] = {
         {"transport": TransportOptions.from_json},
     ),
     "X-UAV-GUIDED": ("send_guided_mode", {"transport": TransportOptions.from_json}),
-    "X-UAV-MISSION": (
-        "mission_upload_and_start",
-        {"transport": TransportOptions.from_json},
-    ),
+    "X-UAV-AUTO": ("send_auto_mode", {"transport": TransportOptions.from_json}),
     "UAV-SIGNAL": (
         "send_light_or_sound_emission_signal",
         {"duration": divide_by(1000), "transport": TransportOptions.from_json},
@@ -482,6 +482,12 @@ class SkybrushServer(DaemonApp):
             uav = self.find_uav_by_id(uav_id, response)
             if uav:
                 statuses[uav_id] = uav.status.json  # type: ignore
+                # airspeed = math.sqrt(
+                #     uav.status.velocity.north**2
+                #     + uav.status.velocity.east**2
+                #     + uav.status.velocity.down**2
+                # )
+                # print(airspeed)
 
         return response
 
@@ -606,12 +612,40 @@ class SkybrushServer(DaemonApp):
 
         return response
 
-    # async def camera_actions(self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id") -> FlockwaveMessage:
-    #     response = self.message_hub.create_response_or_notification(
-    #         body={}, in_response_to=message
-    #     )
-    #     parameters = dict(message.body)
-    #     from .socket.globalVariable import get_camera_url,update_camera_url
+    async def vtol_swarm(
+        self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
+    ) -> FlockwaveMessage:
+        response = self.message_hub.create_response_or_notification(
+            body={}, in_response_to=message
+        )
+        parameters = dict(message.body)
+        msg = parameters["message"].lower()
+
+        if msg == "uploadmission":
+            from .VTOL import main
+
+            result = main(
+                parameters.pop("turn"),
+                int(parameters.pop("numofdrone")),
+            )
+
+        if msg == "skipwaypoint":
+            from .socket.globalVariable import get_vehicle
+            from .VTOL import Skip_waypoint
+
+            vehicles = get_vehicle()
+            result = Skip_waypoint(vehicles, int(parameters.pop("skip")))
+
+        if msg == "download":
+            from .VTOL import download_mission
+            from .socket.globalVariable import get_vehicle
+
+            result = download_mission(get_vehicle())
+
+        response.body["message"] = result
+        response.body["method"] = msg
+
+        return response
 
     async def socket_response(
         self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
@@ -626,6 +660,26 @@ class SkybrushServer(DaemonApp):
         parameters = dict(message.body)
         result = ""
         msg = parameters["message"].lower()
+        # vehicle, csv_file_path, altitude
+
+        if msg == "sparedrones":
+            from .spareDrone.spareDrone import adds_square_mission
+
+            data = [
+                {
+                    "mission": int(parameters.pop("mission")),
+                    "uav": int(parameters.pop("uav")),
+                    "alt": int(parameters.pop("alt")),
+                }
+            ]
+            # fields = ["mission", "uav", "alt"]
+            adds_square_mission(
+                data[0]["mission"],
+                data[0]["uav"],
+                data[0]["alt"],
+            )
+
+            result = True
 
         if msg == "master":
             result = master(int(parameters["uav"]))
@@ -739,12 +793,9 @@ class SkybrushServer(DaemonApp):
         # TransportOptions object and it indicates that we should ignore the
         # UAV IDs, get hold of all registered UAV drivers as well and extend
         # the uavs_by_drivers dict
-        if message_type == "X-UAV-MISSION":
-            # from .socket.globalVariable
-            mission_uav = parameters.pop("uav")
-            mission = parameters.pop("mission")
 
         uavs_by_drivers = self.sort_uavs_by_drivers(uav_ids, response)
+
         if transport and isinstance(transport, dict) and transport.get("ignoreIds"):
             # TODO(ntamas): we do not have legitimate ways to communicate an
             # error back from a driver if the driver has no associated UAVs.
@@ -763,9 +814,7 @@ class SkybrushServer(DaemonApp):
             common_error, results = None, None
             try:
                 method = getattr(driver, method_name)  # type: ignore
-                print(method)
             except (AttributeError, RuntimeError, TypeError) as ex:
-                print("error")
                 common_error = "Operation not supported"
                 method = None
 
@@ -1478,19 +1527,20 @@ async def handle_single_uav_operations(
     "X-UAV-GUIDED",
     "X-UAV-socket",
     "X-UAV-MISSION",
+    "X-UAV-AUTO",
 )
 async def handle_multi_uav_operations(
     message: FlockwaveMessage, sender: Client, hub: MessageHub
 ):
-    if message.get_type() == "X-UAV-socket":
+    if message.get_type() == "X-UAV-socket" or message.get_type() == "X-UAV-MISSION":
         return await app.socket_response(message, sender)
     else:
         return await app.dispatch_to_uavs(message, sender)
 
 
-# @app.message_hub.on("X-CAMERA-TEST")
-# async def handleCameraActions(message: FlockwaveMessage, sender: Client, hub: MessageHub):
-#     return await app.camera_actions(message, sender)
+@app.message_hub.on("X-VTOL-MISSION")
+async def handleVTOLSwarm(message: FlockwaveMessage, sender: Client, hub: MessageHub):
+    return await app.vtol_swarm(message, sender)
 
 
 # ######################################################################## #

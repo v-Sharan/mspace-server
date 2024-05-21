@@ -530,8 +530,10 @@ class ArduPilot(Autopilot):
         0: ("stab", "stabilize"),
         1: ("acro",),
         2: ("alt", "alt hold"),
-        3: ("auto",),
-        4: ("guided",),
+        10: ("auto",),  # plane
+        # 3: ("auto",), # copter
+        19: ("guided",),  #plane
+        # 4: ("guided",), #copter
         5: ("loiter",),
         6: ("rth",),
         7: ("circle",),
@@ -543,7 +545,7 @@ class ArduPilot(Autopilot):
         16: ("pos", "pos hold"),
         17: ("brake",),
         18: ("throw",),
-        19: ("avoid ADSB", "avoid"),
+        4: ("avoid ADSB", "avoid"),
         20: ("guided no GPS",),
         21: ("smart RTH",),
         22: ("flow", "flow hold"),

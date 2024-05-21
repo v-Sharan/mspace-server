@@ -3,13 +3,7 @@
 
 from __future__ import print_function
 
-from dronekit import (
-    connect,
-    VehicleMode,
-    LocationGlobalRelative,
-    LocationGlobal,
-    Command,
-)
+from dronekit import LocationGlobalRelative, LocationGlobal, Command, connect
 import math
 from pymavlink import mavutil
 import csv
@@ -87,7 +81,21 @@ def download_mission(vehicle):
     cmds.wait_ready()
 
 
-def adds_square_mission(vehicle, csv_file_path, altitude):
+def adds_square_mission(mission=1, uav=1, altitude=30):
+    ip_address = {
+        1: [
+            "14561",
+            "C:/Users/vshar/OneDrive/Documents/sharan/DCE/dec-8drones/csv_15/dec_d2.csv",
+        ]
+    }
+
+    try:
+        vehicle = connect(
+            "udpin:192.168.0.127:" + str(ip_address[uav][0]), heartbeat_timeout=3
+        )
+    except Exception as e:
+        raise Exception(e)
+
     cmds = vehicle.commands
 
     cmds.clear()
@@ -110,14 +118,31 @@ def adds_square_mission(vehicle, csv_file_path, altitude):
             altitude,
         )
     )
-    # cmds.add(Command( 0, 0, 0, mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, 0, 0, altitude))
+    cmds.add(
+        Command(
+            0,
+            0,
+            0,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+            mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            altitude,
+        )
+    )
 
-    with open(csv_file_path, "r") as csvfile:
+    with open(ip_address[mission][1], "r") as csvfile:
         reader = csv.reader(csvfile)
         for row in reader:
             if len(row) == 2 and row[0] != "" and row[1] != "":
-                lat = row[0]
-                lon = row[1]
+                wp_lat = row[0]
+                wp_lon = row[1]
                 cmds.add(
                     Command(
                         0,
@@ -131,15 +156,38 @@ def adds_square_mission(vehicle, csv_file_path, altitude):
                         0,
                         0,
                         0,
-                        float(lat),
-                        float(lon),
+                        float(wp_lat),
+                        float(wp_lon),
                         altitude,
                     )
                 )
 
+    # cmds.add(
+    #     Command(
+    #         0,
+    #         0,
+    #         0,
+    #         mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    #         16,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         lat,
+    #         lon,
+    #         altitude,
+    #     )
+    # )
+
     cmds.upload()
+
+    vehicle.close()
 
     print("Mission is uploaded for Drone")
 
+    return True
 
-# adds_square_mission(vehicle, folder_path)
+
+# adds_square_mission()
