@@ -75,7 +75,7 @@ class UAVStatusInfo(TimestampMixin, metaclass=ModelMeta):
     velocityXYZ: Optional[VelocityXYZ]
     battery: BatteryInfo
     rssi: list[int]
-    airspeed: int
+    airspeed: float
 
     def __init__(
         self, id: Optional[str] = None, timestamp: Optional[TimestampLike] = None
@@ -332,7 +332,7 @@ class UAVBase(UAV):
         errors: Optional[Union[int, Iterable[int]]] = None,
         debug: Optional[bytes] = None,
         rssi: Optional[Union[int, Iterable[int]]] = None,
-        airspeed: Optional[int] = None,
+        airspeed: Optional[float] = None,
     ):
         """Updates the status information of the UAV.
 

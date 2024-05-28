@@ -481,13 +481,9 @@ class SkybrushServer(DaemonApp):
         for uav_id in uav_ids:
             uav = self.find_uav_by_id(uav_id, response)
             if uav:
-                statuses[uav_id] = uav.status.json  # type: ignore
-                # airspeed = math.sqrt(
-                #     uav.status.velocity.north**2
-                #     + uav.status.velocity.east**2
-                #     + uav.status.velocity.down**2
-                # )
-                # print(airspeed)
+                status = dict(uav.status.json)
+                status["airspeed"] = uav.status.airspeed
+                statuses[uav_id] = status  # type: ignore
 
         return response
 

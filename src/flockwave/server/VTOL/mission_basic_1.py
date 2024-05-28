@@ -86,28 +86,139 @@ def adds_square_mission(vehicle, i, altitude):
 
     cmds = vehicle.commands
 
+    # cmds.clear()
+
+    # flag = 0
+    # prev_lat, prev_lon = 0, 0
+    # cmds.add(
+    #     Command(
+    #         0,
+    #         0,
+    #         0,
+    #         mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    #         mavutil.mavlink.MAV_CMD_NAV_VTOL_TAKEOFF,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         30,
+    #     )
+    # )
+    # cmds.add(
+    #     Command(
+    #         0,
+    #         0,
+    #         0,
+    #         mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    #         mavutil.mavlink.MAV_CMD_NAV_VTOL_TAKEOFF,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         30,
+    #     )
+    # )
+    # with open(
+    #     "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/csvs/forward-drone-"
+    #     + str(i + 1)
+    #     + ".csv",
+    #     "r",
+    # ) as f:
+    #     csvreader = csv.reader(f)
+    #     for row in csvreader:
+    #         lat = float(row[0])
+    #         lon = float(row[1])
+    #         if not flag:
+    #             cmds.add(
+    #                 Command(
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    #                     mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     lat,
+    #                     lon,
+    #                     altitude,
+    #                 )
+    #             )
+    #             cmds.add(
+    #                 Command(
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    #                     mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     lat,
+    #                     lon,
+    #                     altitude,
+    #                 )
+    #             )
+    #         else:
+    #             cmds.add(
+    #                 Command(
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    #                     mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     0,
+    #                     lat,
+    #                     lon,
+    #                     altitude,
+    #                 )
+    #             )
+    #         prev_lat = lat
+    #         prev_lon = lon
+    #         flag = 1
+    #     cmds.add(
+    #         Command(
+    #             0,
+    #             0,
+    #             0,
+    #             mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+    #             mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM,
+    #             0,
+    #             0,
+    #             0,
+    #             0,
+    #             0,
+    #             0,
+    #             prev_lat,
+    #             prev_lon,
+    #             altitude,
+    #         )
+    #     )
+    print(" Clear any existing commands")
     cmds.clear()
 
+    print(" Define/add new commands.")
     flag = 0
     prev_lat, prev_lon = 0, 0
-    cmds.add(
-        Command(
-            0,
-            0,
-            0,
-            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-            mavutil.mavlink.MAV_CMD_NAV_VTOL_TAKEOFF,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            30,
-        )
-    )
     cmds.add(
         Command(
             0,
@@ -134,6 +245,7 @@ def adds_square_mission(vehicle, i, altitude):
     ) as f:
         csvreader = csv.reader(f)
         for row in csvreader:
+            print(row)
             lat = float(row[0])
             lon = float(row[1])
             if not flag:
@@ -195,24 +307,105 @@ def adds_square_mission(vehicle, i, altitude):
             prev_lat = lat
             prev_lon = lon
             flag = 1
-        cmds.add(
-            Command(
-                0,
-                0,
-                0,
-                mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
-                mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                prev_lat,
-                prev_lon,
-                altitude,
+    with open(
+        "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/csvs/search-drone-"
+        + str(i + 1)
+        + ".csv",
+        "r",
+    ) as f:
+        csvreader = csv.reader(f)
+        for row in csvreader:
+            print(row)
+            lat = float(row[0])
+            lon = float(row[1])
+            cmds.add(
+                Command(
+                    0,
+                    0,
+                    0,
+                    mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                    mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    lat,
+                    lon,
+                    altitude,
+                )
             )
+            prev_lat = lat
+            prev_lon = lon
+    cmds.add(
+        Command(
+            0,
+            0,
+            0,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+            mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            prev_lat,
+            prev_lon,
+            altitude,
         )
+    )
+
+    with open(
+        "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/csvs/reverse-drone-"
+        + str(i + 1)
+        + ".csv",
+        "r",
+    ) as f:
+        csvreader = csv.reader(f)
+        for row in csvreader:
+            print(row)
+            lat = float(row[0])
+            lon = float(row[1])
+            cmds.add(
+                Command(
+                    0,
+                    0,
+                    0,
+                    mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+                    mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    lat,
+                    lon,
+                    altitude,
+                )
+            )
+            prev_lat = lat
+            prev_lon = lon
+    cmds.add(
+        Command(
+            0,
+            0,
+            0,
+            mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT,
+            mavutil.mavlink.MAV_CMD_NAV_LOITER_UNLIM,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            prev_lat,
+            prev_lon,
+            altitude,
+        )
+    )
     cmds.upload()
     vehicle.close()
 

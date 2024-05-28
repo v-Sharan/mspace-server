@@ -27,7 +27,7 @@ def download_mission(vehicles):
     return lat_lon
 
 
-def download_mission_kml(kml_file, vehicle, sys_id):
+def download_mission_kml(kml_file, kml_file1, vehicle, sys_id):
     kml = simplekml.Kml()
     missionlist = []
     cmds = vehicle.commands
@@ -42,6 +42,18 @@ def download_mission_kml(kml_file, vehicle, sys_id):
         kml.newpoint(name="{}_{}".format(sys_id, i), coords=[(cmd.y, cmd.x, cmd.z)])
         i += 1
     kml.save(kml_file)
+    i = 1
+    kml1 = simplekml.Kml()
+    missionlist = missionlist[::-1]
+    for command in missionlist:
+        if int(cmd.x) == 0:
+            continue
+        kml.newpoint(
+            name="{}_{}".format(sys_id, i),
+            coords=[(command[0], command[1], command[2])],
+        )
+        i += 1
+    kml1.save(kml_file1)
 
 
 def clear_mission(vehicle):
@@ -59,7 +71,8 @@ def main(selected_turn, numOfDrones):
 
     sys_id = index
     download_mission_kml(
-        "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/Mission.kml",
+        "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/Forward-Mission.kml",
+        "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/Reverse-Mission.kml",
         vehicle,
         sys_id,
     )

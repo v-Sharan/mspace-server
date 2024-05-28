@@ -2197,7 +2197,7 @@ class MAVLinkUAV(UAVBase):
                 param1=message_id,
                 param2=1000000 / interval_hz,
             )
-            print("success......", success)
+
             if not success:
                 self.driver.log.warning(
                     f"Failed to configure data stream rate for message {message_id}",
