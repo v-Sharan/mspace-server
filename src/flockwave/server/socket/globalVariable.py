@@ -10,15 +10,18 @@ area_covered, minutes, seconds = 0, 0, 0
 removed_uav_grid_file_name = []
 removed_uav_grid_path_length = []
 vehicles = []
+mission = []
 
 
 def update_vehicle(veh):
     global vehicles
+    print("Updating Vehiclessss")
     vehicles.extend(veh)
 
 
 def get_vehicle():
     global vehicles
+    print(vehicles)
     return vehicles
 
 
@@ -127,3 +130,13 @@ def getRemovedUAVfilename():
 def getRemovedUAVgridpathlength():
     global removed_uav_grid_path_length
     return removed_uav_grid_path_length
+
+
+def saveDownload(new_mission):
+    global mission
+    mission.extend(new_mission)
+
+
+def downloadMission():
+    global mission
+    return mission

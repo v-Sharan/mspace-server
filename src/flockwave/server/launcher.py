@@ -103,7 +103,7 @@ def start(
 
     if dronekit:
         try:
-            vehicles = Connect_vehicles(log)
+            vehicles = Connect_vehicles()
             update_vehicle(veh=vehicles)
         except Exception as e:
             print(e)

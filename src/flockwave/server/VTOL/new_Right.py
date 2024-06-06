@@ -146,7 +146,7 @@ def generate_XY_Positions(numOfDrones, x, y, origin):
     return XY_values
 
 
-def main(Drones, ip_address):
+def main(Drones):
     result = kml_read(
         "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/Mission.kml"
     )

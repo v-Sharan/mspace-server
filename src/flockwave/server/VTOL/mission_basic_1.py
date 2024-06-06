@@ -18,6 +18,7 @@ from dronekit import (
 import time
 import math, csv, subprocess, os
 from pymavlink import mavutil
+from ..logger import log
 
 
 def get_location_metres(original_location, dNorth, dEast):
@@ -423,248 +424,19 @@ def ping(self, host):
 
 
 # def Connect_vehicles(drones, ip_address):
-def Connect_vehicles(log):
+def Connect_vehicles():
     vehicles = []
-    # heartbeat_ip_address = [
-    #     "192.168.6.101",
-    #     "192.168.6.102",
-    #     "192.168.6.103",
-    #     "192.168.6.104",
-    #     "192.168.6.105",
-    #     "192.168.6.106",
-    #     "192.168.6.107",
-    #     "192.168.6.108",
-    #     "192.168.6.109",
-    #     "192.168.6.110",
-    #     "192.168.6.111",
-    #     "192.168.6.112",
-    #     "192.168.6.113",
-    #     "192.168.6.114",
-    #     "192.168.6.115",
-    # ]
-    # heartbeat_ip = [0] * 20
-
-    # port = 14551
-
-    # for i in range(len(heartbeat_ip_address)):
-    #     response = ping(heartbeat_ip_address[i])
-    #     if response:
-    #         heartbeat_ip[i] = 30
-    #     else:
-    #         heartbeat_ip[i] = 2
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle1 = connect(serialport, heartbeat_timeout=heartbeat_ip[0])
-    #     print(serialport)
-    #     vehicles.append(vehicle1)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle2 = connect(serialport, heartbeat_timeout=heartbeat_ip[1])
-    #     print(serialport)
-
-    #     vehicles.append(vehicle2)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle3 = connect(serialport, heartbeat_timeout=heartbeat_ip[2])
-    #     print(serialport)
-    #     vehicles.append(vehicle3)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle4 = connect(serialport, heartbeat_timeout=heartbeat_ip[3])
-    #     print(serialport)
-    #     vehicles.append(vehicle4)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + "" + ":" + str(port)
-    #     vehicle5 = connect(serialport, heartbeat_timeout=heartbeat_ip[4])
-    #     print(serialport)
-    #     vehicles.append(vehicle5)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle6 = connect(serialport, heartbeat_timeout=heartbeat_ip[5])
-    #     print(serialport)
-    #     vehicles.append(vehicle6)
-    # except:
-
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle7 = connect(serialport, heartbeat_timeout=heartbeat_ip[6])
-    #     print(serialport)
-    #     vehicles.append(vehicle7)
-    # except:
-
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle8 = connect(serialport, heartbeat_timeout=heartbeat_ip[7])
-    #     print(serialport)
-    #     vehicles.append(vehicle8)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle9 = connect(serialport, heartbeat_timeout=heartbeat_ip[8])
-    #     print(serialport)
-    #     vehicles.append(vehicle9)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # port += 1
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle10 = connect(serialport, heartbeat_timeout=heartbeat_ip[9])
-    #     print(serialport)
-    #     vehicles.append(vehicle10)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle11 = connect(serialport, heartbeat_timeout=heartbeat_ip[10])
-    #     print(serialport)
-    #     vehicles.append(vehicle11)
-
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle12 = connect(serialport, heartbeat_timeout=heartbeat_ip[11])
-    #     print(serialport)
-    #     vehicles.append(vehicle12)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle13 = connect(serialport, heartbeat_timeout=heartbeat_ip[12])
-    #     print(serialport)
-    #     vehicles.append(vehicle13)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle14 = connect(serialport, heartbeat_timeout=heartbeat_ip[13])
-    #     print(serialport)
-    #     vehicles.append(vehicle14)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle15 = connect(serialport, heartbeat_timeout=heartbeat_ip[14])
-    #     print(serialport)
-    #     vehicles.append(vehicle15)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-
-    # try:
-    #     serialport = "udpin:" + str(ip_address) + ":" + str(port)
-    #     vehicle16 = connect(serialport, heartbeat_timeout=heartbeat_ip[15])
-    #     vehicles.append(vehicle16)
-    # except:
-    #     pass
-
-    # if len(vehicles) >= drones:
-    #     return
-    try:
-        vehicle1 = connect("udpin:192.168.6.215:14551", heartbeat_timeout=10)
-        vehicles.append(vehicle1)
-        log.info("vehicle 1 is connected {}".format(vehicle1))
-    except:
-        pass
-    try:
-        vehicle2 = connect("udpin:192.168.6.215:14552", heartbeat_timeout=10)
-        vehicles.append(vehicle2)
-        log.info("vehicle 2 is connected {}".format(vehicle2))
-    except:
-        pass
-    try:
-        vehicle3 = connect("udpin:192.168.6.215:14553", heartbeat_timeout=10)
-        vehicles.append(vehicle3)
-        log.info("vehicle 3 is connected {}".format(vehicle3))
-    except:
-        pass
+    print("Connectingggggggg")
+    for i in range(1, 8):
+        try:
+            port = "udpin:192.168.6.215:1455" + str(i)
+            vehicle = connect(port, heartbeat_timeout=10)
+            vehicles.append(vehicle)
+            print("vehicle Connecting")
+            log.info("vehicle {} is connected {}".format(i, vehicle))
+        except:
+            # vehicles.append(0)
+            pass
     print(vehicles)
     return vehicles
 

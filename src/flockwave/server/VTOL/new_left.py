@@ -146,7 +146,7 @@ def generate_XY_Positions(numOfDrones, x, y, origin):
     return XY_values
 
 
-def main(Drones, ip_address):
+def main(Drones):
 
     result = kml_read(
         "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/Mission.kml"
@@ -282,6 +282,20 @@ def main(Drones, ip_address):
     for i in range(numOfDrones):
         with open(
             "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/csvs/forward-drone-"
+            + str(i + 1)
+            + ".csv",
+            "w",
+            newline="",
+        ) as f:
+            csvwriter = csv.writer(f)
+            for j in range(len(lat_lons[i])):
+
+                csvwriter.writerow([lat_lons[i][j][0], lat_lons[i][j][1]])
+
+    for i in range(numOfDrones):
+        lat_lons[i] = lat_lons[i].reverse()
+        with open(
+            "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/csvs/reverse-drone-"
             + str(i + 1)
             + ".csv",
             "w",

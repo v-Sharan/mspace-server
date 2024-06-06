@@ -28,7 +28,7 @@ from flockwave.server.utils.system_time import (
     get_system_time_msec,
     set_system_time_msec_async,
 )
-import math
+import threading
 
 from .commands import CommandExecutionManager, CommandExecutionStatus
 from .errors import NotSupportedError
@@ -68,7 +68,9 @@ from .socket.globalVariable import (
     update_logCounter,
 )
 
-import subprocess
+from dronekit import LocationGlobalRelative, VehicleMode
+
+# from .cameraActions import stop_capture, start_camera
 
 __all__ = ("app",)
 
@@ -608,6 +610,59 @@ class SkybrushServer(DaemonApp):
 
         return response
 
+    async def camera_actions(
+        self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
+    ) -> FlockwaveMessage:
+        response = self.message_hub.create_response_or_notification(
+            body={}, in_response_to=message
+        )
+        parameters = dict(message.body)
+        msg = parameters["message"].lower()
+
+        # if msg == "test":
+        #     result = "test"
+
+        # if msg == "start_capture":
+        #     result = await start_camera()
+
+        # if msg == "stop_capture":
+        #     result = await stop_capture()
+
+        # response.body["message"] = result
+        # response.body["method"] = msg
+
+        return response
+
+    def simple_go_to(self, target, vehicle):
+        from .VTOL import gps_bearing
+
+        for point in target:
+            location = LocationGlobalRelative(
+                lat=point[0],
+                lon=point[1],
+                alt=100,
+            )
+            vehicle.simple_goto(location)
+            print(point)
+            while True:
+                lat, lon = (
+                    vehicle.location.global_frame.lat,
+                    vehicle.location.global_frame.lon,
+                )
+                [dis, bearing] = gps_bearing(
+                    homeLattitude=lat,
+                    homeLongitude=lon,
+                    destinationLattitude=point[0],
+                    destinationLongitude=point[1],
+                )
+                print(dis)
+                if dis < 200:
+                    break
+        vehicle.mode = VehicleMode("AUTO")
+        time.sleep(0.5)
+        vehicle.mode = VehicleMode("AUTO")
+        print("mode")
+
     async def vtol_swarm(
         self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
     ) -> FlockwaveMessage:
@@ -616,6 +671,29 @@ class SkybrushServer(DaemonApp):
         )
         parameters = dict(message.body)
         msg = parameters["message"].lower()
+
+        if msg == "target":
+            from .VTOL import Guided_Mission
+            from .socket.globalVariable import get_vehicle
+
+            res_latlon = Guided_Mission(
+                float(parameters.pop("lat")), float(parameters.pop("lon"))
+            )
+            vehicle = get_vehicle()[int(parameters.pop("uavid"))]
+            if vehicle == 0:
+                result = "No vehicle Connected"
+                return response
+            vehicle.mode = VehicleMode("GUIDED")
+            time.sleep(0.5)
+            vehicle.mode = VehicleMode("GUIDED")
+            threading.Thread(
+                target=self.simple_go_to, args=(res_latlon, vehicle), daemon=True
+            ).start()
+            new_lat_lon = []
+            for lat_lon in res_latlon:
+                new_lat_lon.append([lat_lon[1], lat_lon[0]])
+            print(new_lat_lon)
+            result = new_lat_lon
 
         if msg == "uploadmission":
             from .VTOL import main
@@ -1537,6 +1615,13 @@ async def handle_multi_uav_operations(
 @app.message_hub.on("X-VTOL-MISSION")
 async def handleVTOLSwarm(message: FlockwaveMessage, sender: Client, hub: MessageHub):
     return await app.vtol_swarm(message, sender)
+
+
+# @app.message_hub.on("X-CAMERA")
+# async def handleCameraActions(
+#     message: FlockwaveMessage, sender: Client, hub: MessageHub
+# ):
+#     return await app.camera_actions(message, sender)
 
 
 # ######################################################################## #

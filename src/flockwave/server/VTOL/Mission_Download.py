@@ -3,6 +3,7 @@ import simplekml
 # import mission_basic_1 as MB
 from .new_left import main as VPL
 from .new_Right import main as VPR
+from dronekit import connect
 
 original_location = []
 R = 6373.0
@@ -10,6 +11,12 @@ home_location = None
 
 
 def download_mission(vehicles):
+    from ..socket.globalVariable import saveDownload, downloadMission
+
+    mission = downloadMission()
+    if len(mission) > 0:
+        print(mission)
+        return mission
     lat_lon = []
     for vehicle in vehicles:
         print(vehicle)
@@ -19,11 +26,13 @@ def download_mission(vehicles):
         cmds.wait_ready()
         vehicle.parameters.wait_ready()
         for cmd in cmds:
-            print(cmd)
+            # print(cmd)
             if int(cmd.x) == 0:
                 continue
             missionlist.append([cmd.y, cmd.x])
         lat_lon.append(missionlist)
+
+    saveDownload(lat_lon)
     return lat_lon
 
 
@@ -67,7 +76,8 @@ def main(selected_turn, numOfDrones):
 
     index = 1
     vehicles = get_vehicle()
-    vehicle = vehicles[0]
+    print(vehicles)
+    vehicle = connect("udpin:192.168.6.215:14551", heartbeat_timeout=10)
 
     sys_id = index
     download_mission_kml(
@@ -77,8 +87,8 @@ def main(selected_turn, numOfDrones):
         sys_id,
     )
     if selected_turn == "left":
-        VPL(numOfDrones, "192.168.0.127")
+        VPL(numOfDrones)
     elif selected_turn == "right":
-        VPR(numOfDrones, "192.168.0.127")
+        VPR(numOfDrones)
 
     return True
