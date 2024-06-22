@@ -427,7 +427,7 @@ def ping(self, host):
 def Connect_vehicles():
     vehicles = []
     print("Connectingggggggg")
-    for i in range(1, 8):
+    for i in range(1, 9):
         try:
             port = "udpin:192.168.6.215:1455" + str(i)
             vehicle = connect(port, heartbeat_timeout=10)

@@ -663,6 +663,36 @@ class SkybrushServer(DaemonApp):
         vehicle.mode = VehicleMode("AUTO")
         print("mode")
 
+    async def CameraControl_swarm(
+        self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
+    ) -> FlockwaveMessage:
+        response = self.message_hub.create_response_or_notification(
+            body={}, in_response_to=message
+        )
+        parameters = dict(message.body)
+        msg = parameters["message"].lower()
+
+        print(msg)
+
+        if msg == "left":
+            from .Cam_Control import main
+
+            main(0, 0, 0, 1)
+        if msg == "right":
+            from .Cam_Control import main
+
+            main(0, 0, 1, 0)
+        if msg == "up":
+            from .Cam_Control import main
+
+            main(1, 0, 0, 0)
+        if msg == "down":
+            from .Cam_Control import main
+
+            main(0, 1, 0, 0)
+
+        response.body["message"] = True
+
     async def vtol_swarm(
         self, message: FlockwaveMessage, sender: Client, *, id_property: str = "id"
     ) -> FlockwaveMessage:
@@ -1615,6 +1645,13 @@ async def handle_multi_uav_operations(
 @app.message_hub.on("X-VTOL-MISSION")
 async def handleVTOLSwarm(message: FlockwaveMessage, sender: Client, hub: MessageHub):
     return await app.vtol_swarm(message, sender)
+
+
+@app.message_hub.on("Camera-MISSION")
+async def handleCameraMission(
+    message: FlockwaveMessage, sender: Client, hub: MessageHub
+):
+    return await app.CameraControl_swarm(message, sender)
 
 
 # @app.message_hub.on("X-CAMERA")

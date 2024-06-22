@@ -38,3 +38,6 @@ def test_uavstatusinfo():
     status = UAVStatusInfo()
 
     assert status.attitude is None
+
+
+test_attitude()

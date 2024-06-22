@@ -4,25 +4,25 @@
         <Placemark id="3">
             <name>1_1</name>
             <Point id="2">
-                <coordinates>80.23519134521484,13.389556884765625,100.0</coordinates>
+                <coordinates>80.23633575439453,13.389556884765625,100.0</coordinates>
             </Point>
         </Placemark>
         <Placemark id="5">
             <name>1_2</name>
             <Point id="4">
-                <coordinates>80.23540496826172,13.39369010925293,100.0</coordinates>
+                <coordinates>80.23639678955078,13.393940925598145,100.0</coordinates>
             </Point>
         </Placemark>
         <Placemark id="7">
             <name>1_3</name>
             <Point id="6">
-                <coordinates>80.22755432128906,13.39383602142334,100.0</coordinates>
+                <coordinates>80.22783660888672,13.393606185913086,100.0</coordinates>
             </Point>
         </Placemark>
         <Placemark id="9">
             <name>1_4</name>
             <Point id="8">
-                <coordinates>80.22736358642578,13.387532234191895,100.0</coordinates>
+                <coordinates>80.22785186767578,13.387866973876953,100.0</coordinates>
             </Point>
         </Placemark>
     </Document>

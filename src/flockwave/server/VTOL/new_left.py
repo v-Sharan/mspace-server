@@ -149,7 +149,7 @@ def generate_XY_Positions(numOfDrones, x, y, origin):
 def main(Drones):
 
     result = kml_read(
-        "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/Mission.kml"
+        "C:/Users/vshar/OneDrive/Documents/fullstack/skybrush-server/src/flockwave/server/VTOL/Forward-Mission.kml"
     )
 
     numOfDrones = Drones
@@ -160,7 +160,7 @@ def main(Drones):
     x = 0
     y = -60
 
-    lat_lons = [[], [], []]
+    lat_lons = [[], [], [], [], [], [], [], [], []]
 
     prev_bearing = abs(
         gps_bearing(result[0][0], result[0][1], result[1][0], result[1][1])[1]

@@ -77,7 +77,7 @@ def main(selected_turn, numOfDrones):
     index = 1
     vehicles = get_vehicle()
     print(vehicles)
-    vehicle = connect("udpin:192.168.6.215:14551", heartbeat_timeout=10)
+    vehicle = vehicles[0]
 
     sys_id = index
     download_mission_kml(
